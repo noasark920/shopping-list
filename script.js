@@ -8,10 +8,14 @@ const MESSAGES = {
 };
 
 let categories = loadData(STORAGE_KEYS.categories);
-let items = loadData(STORAGE_KEYS.items);
+let items = normalizeItems(loadData(STORAGE_KEYS.items));
 let activeTab = "list";
+let shoppingMode = "select";
+let itemDeleteMode = false;
 let selectedCategoryIds = new Set();
 let selectedItemIds = new Set();
+
+saveData(STORAGE_KEYS.items, items);
 
 function loadData(key) {
   try {
@@ -26,12 +30,16 @@ function saveData(key, data) {
   localStorage.setItem(key, JSON.stringify(data));
 }
 
+function saveItems() {
+  saveData(STORAGE_KEYS.items, items);
+}
+
 function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2);
 }
 
 function normalizeName(value) {
-  return String(value).trim();
+  return String(value ?? "").trim();
 }
 
 function isValidSortOrder(value) {
@@ -41,6 +49,25 @@ function isValidSortOrder(value) {
 
 function getNextSortOrder(list) {
   return list.reduce((max, entry) => Math.max(max, Number(entry.sortOrder) || 0), 0) + 10;
+}
+
+function normalizeItem(item) {
+  const selectedForShopping = Boolean(
+    item.selectedForShopping !== undefined ? item.selectedForShopping : item.buyThisTime
+  );
+
+  return {
+    id: item.id || generateId(),
+    name: normalizeName(item.name),
+    categoryId: item.categoryId || null,
+    sortOrder: Number(item.sortOrder) || 0,
+    selectedForShopping,
+    purchased: selectedForShopping ? Boolean(item.purchased) : false,
+  };
+}
+
+function normalizeItems(rawItems) {
+  return Array.isArray(rawItems) ? rawItems.map(normalizeItem) : [];
 }
 
 function categoryExistsByName(name, excludeId = null) {
@@ -131,10 +158,10 @@ function addItem(name, categoryId, sortOrder) {
     name: normalizedName,
     categoryId: categoryId || null,
     sortOrder: Number(sortOrder),
-    buyThisTime: false,
+    selectedForShopping: false,
     purchased: false,
   });
-  saveData(STORAGE_KEYS.items, items);
+  saveItems();
   return true;
 }
 
@@ -148,14 +175,14 @@ function updateItem(id, name, categoryId, sortOrder) {
   item.name = normalizedName;
   item.categoryId = categoryId || null;
   item.sortOrder = Number(sortOrder);
-  saveData(STORAGE_KEYS.items, items);
+  saveItems();
   return true;
 }
 
 function deleteItem(id) {
   items = items.filter(item => item.id !== id);
   selectedItemIds.delete(id);
-  saveData(STORAGE_KEYS.items, items);
+  saveItems();
 }
 
 function deleteItems(ids) {
@@ -164,15 +191,26 @@ function deleteItems(ids) {
   const deleteSet = new Set(ids);
   items = items.filter(item => !deleteSet.has(item.id));
   ids.forEach(id => selectedItemIds.delete(id));
-  saveData(STORAGE_KEYS.items, items);
+  saveItems();
   return ids.length;
+}
+
+function setItemShoppingSelection(id, checked) {
+  const item = items.find(entry => entry.id === id);
+  if (!item) return;
+
+  item.selectedForShopping = checked;
+  if (!checked) {
+    item.purchased = false;
+  }
+  saveItems();
 }
 
 function togglePurchased(id) {
   const item = items.find(entry => entry.id === id);
-  if (!item || !item.buyThisTime) return;
+  if (!item || !item.selectedForShopping) return;
   item.purchased = !item.purchased;
-  saveData(STORAGE_KEYS.items, items);
+  saveItems();
 }
 
 function getCategoryMap() {
@@ -350,51 +388,94 @@ function renderTabs() {
   });
 }
 
+function renderShoppingModePanel(selectedCount) {
+  const descriptions = {
+    select: "今回買う商品を選ぶモードです。ここでは対象商品のみ切り替えます。",
+    shopping: "選択済みの商品だけを表示し、買ったものにチェックを付けます。",
+  };
+
+  return `
+    <div class="mode-panel">
+      <div class="mode-switch" role="tablist" aria-label="買い物リストモード切替">
+        <button
+          type="button"
+          class="btn btn--ghost mode-switch__btn ${shoppingMode === "select" ? "mode-switch__btn--active" : ""}"
+          onclick="handleShoppingModeChange('select')"
+        >
+          対象選択モード
+        </button>
+        <button
+          type="button"
+          class="btn btn--ghost mode-switch__btn ${shoppingMode === "shopping" ? "mode-switch__btn--active" : ""}"
+          onclick="handleShoppingModeChange('shopping')"
+        >
+          買い物モード
+        </button>
+      </div>
+      <div class="mode-panel__desc">${escapeHtml(descriptions[shoppingMode])}</div>
+      <div class="list-summary">選択中: ${selectedCount}件</div>
+    </div>
+  `;
+}
+
 function renderListTab() {
   const container = document.getElementById("list-content");
-  const buyItems = getSortedItems().filter(item => item.buyThisTime);
+  const sortedItems = getSortedItems();
   const categoryMap = getCategoryMap();
-  const uncategorizedKey = "__uncategorized__";
+  const visibleItems = shoppingMode === "shopping"
+    ? sortedItems.filter(item => item.selectedForShopping)
+    : sortedItems;
+  const selectedCount = sortedItems.filter(item => item.selectedForShopping).length;
 
-  if (buyItems.length === 0) {
+  if (sortedItems.length === 0) {
     container.innerHTML = `
+      ${renderShoppingModePanel(0)}
       <div class="empty-state">
-        <div class="empty-state__icon">🛒</div>
-        <p>「今回買う」にチェックした商品がここに表示されます。</p>
+        <div class="empty-state__icon">🧾</div>
+        <p>商品管理から商品を登録すると、買い物リストで選択できるようになります。</p>
       </div>
     `;
     return;
   }
 
-  const grouped = {};
-  buyItems.forEach(item => {
-    const key = item.categoryId && categoryMap[item.categoryId] ? item.categoryId : uncategorizedKey;
-    if (!grouped[key]) grouped[key] = [];
-    grouped[key].push(item);
+  if (shoppingMode === "shopping" && visibleItems.length === 0) {
+    container.innerHTML = `
+      ${renderShoppingModePanel(selectedCount)}
+      <div class="empty-state">
+        <div class="empty-state__icon">🛍️</div>
+        <p>対象選択モードで今回買う商品を選んでください。</p>
+      </div>
+    `;
+    return;
+  }
+
+  let html = `${renderShoppingModePanel(selectedCount)}<div class="list-table">`;
+
+  visibleItems.forEach(item => {
+    const categoryName = item.categoryId && categoryMap[item.categoryId] ? categoryMap[item.categoryId].name : MESSAGES.noCategory;
+    const checked = shoppingMode === "select" ? item.selectedForShopping : item.purchased;
+    const changeHandler = shoppingMode === "select"
+      ? `handleToggleShoppingSelection('${item.id}', this.checked)`
+      : `handleTogglePurchased('${item.id}')`;
+
+    html += `
+      <label class="list-row ${shoppingMode === "shopping" && item.purchased ? "list-row--purchased" : ""}" data-id="${item.id}">
+        <span class="list-row__check">
+          <input
+            type="checkbox"
+            ${checked ? "checked" : ""}
+            onchange="${changeHandler}"
+          />
+        </span>
+        <span class="list-row__main">
+          <span class="list-row__name">${escapeHtml(item.name)}</span>
+          <span class="list-row__sub">${escapeHtml(categoryName)}</span>
+        </span>
+      </label>
+    `;
   });
 
-  const orderedKeys = [
-    ...getSortedCategories().map(category => category.id).filter(id => grouped[id]),
-    ...(grouped[uncategorizedKey] ? [uncategorizedKey] : []),
-  ];
-
-  let html = "";
-  orderedKeys.forEach(key => {
-    const categoryName = key === uncategorizedKey ? MESSAGES.noCategory : categoryMap[key].name;
-    html += `<div class="category-group"><div class="category-group__header">${escapeHtml(categoryName)}</div>`;
-    grouped[key].forEach(item => {
-      html += `
-        <div class="list-item ${item.purchased ? "list-item--purchased" : ""}" data-id="${item.id}">
-          <button class="purchased-btn ${item.purchased ? "purchased-btn--done" : ""}" onclick="handleTogglePurchased('${item.id}')" title="購入済みを切り替え">
-            ${item.purchased ? "✓" : ""}
-          </button>
-          <span class="list-item__name">${escapeHtml(item.name)}</span>
-        </div>
-      `;
-    });
-    html += "</div>";
-  });
-
+  html += "</div>";
   container.innerHTML = html;
 }
 
@@ -449,11 +530,30 @@ function renderCategoriesTab() {
   container.innerHTML = html;
 }
 
+function renderItemsToolbar(selectedCount) {
+  if (!itemDeleteMode) {
+    return "";
+  }
+
+  return `
+    <div class="bulk-toolbar">
+      <div class="bulk-actions">
+        <button type="button" class="btn btn--danger btn--sm" onclick="handleBulkDeleteItems()" ${selectedCount === 0 ? "disabled" : ""}>
+          選択した商品を削除
+        </button>
+        <button type="button" class="btn btn--ghost btn--sm" onclick="handleCancelItemDeleteMode()">
+          キャンセル
+        </button>
+      </div>
+      <div class="bulk-toolbar__count">${selectedCount}件選択中</div>
+    </div>
+  `;
+}
+
 function renderItemsTab() {
   const container = document.getElementById("items-content");
   const sortedItems = getSortedItems();
   const categoryMap = getCategoryMap();
-  document.getElementById("clear-buy-btn").style.display = sortedItems.some(item => item.buyThisTime) ? "" : "none";
 
   if (sortedItems.length === 0) {
     container.innerHTML = `
@@ -466,37 +566,26 @@ function renderItemsTab() {
   }
 
   const selectedCount = sortedItems.filter(item => selectedItemIds.has(item.id)).length;
-  let html = `
-    <div class="bulk-toolbar">
-      <div class="bulk-actions">
-        <button type="button" class="btn btn--danger btn--sm" onclick="handleBulkDeleteItems()" ${selectedCount === 0 ? "disabled" : ""}>
-          選択した商品を削除
-        </button>
-      </div>
-      <div class="bulk-toolbar__count">${selectedCount}件選択中</div>
-    </div>
-    <div class="data-table">
-  `;
+  let html = `${renderItemsToolbar(selectedCount)}<div class="data-table">`;
 
   sortedItems.forEach(item => {
     const categoryName = item.categoryId && categoryMap[item.categoryId] ? categoryMap[item.categoryId].name : MESSAGES.noCategory;
+
     html += `
       <div class="data-row" data-id="${item.id}">
-        <label class="row-select" aria-label="${escapeHtml(item.name)}を選択">
-          <input type="checkbox" ${selectedItemIds.has(item.id) ? "checked" : ""} onchange="handleItemSelectionChange('${item.id}', this.checked)" />
-        </label>
+        ${itemDeleteMode ? `
+          <label class="row-select" aria-label="${escapeHtml(item.name)}を選択">
+            <input type="checkbox" ${selectedItemIds.has(item.id) ? "checked" : ""} onchange="handleItemSelectionChange('${item.id}', this.checked)" />
+          </label>
+        ` : ""}
         <span class="data-row__sort">${item.sortOrder}</span>
         <div class="data-row__main">
           <span class="data-row__name">${escapeHtml(item.name)}</span>
           <span class="data-row__sub">${escapeHtml(categoryName)}</span>
         </div>
-        <label class="buy-check ${item.buyThisTime ? "buy-check--on" : ""}" title="今回買う">
-          <input type="checkbox" ${item.buyThisTime ? "checked" : ""} onchange="handleToggleBuyThisTime('${item.id}', this.checked)" />
-          <span>今回買う</span>
-        </label>
         <div class="data-row__actions">
-          <button class="btn btn--icon btn--edit" onclick="handleEditItem('${item.id}')" title="編集">✏️</button>
-          <button class="btn btn--icon btn--delete" onclick="handleDeleteItem('${item.id}')" title="削除">🗑️</button>
+          <button class="btn btn--icon btn--edit" onclick="handleEditItem('${item.id}')" title="編集" ${itemDeleteMode ? "disabled" : ""}>✏️</button>
+          <button class="btn btn--icon btn--delete" onclick="handleDeleteItem('${item.id}')" title="削除" ${itemDeleteMode ? "disabled" : ""}>🗑️</button>
         </div>
       </div>
     `;
@@ -519,6 +608,23 @@ function handleTabClick(tab) {
   renderAll();
 }
 
+function handleShoppingModeChange(mode) {
+  shoppingMode = mode;
+  renderListTab();
+}
+
+function handleToggleItemDeleteMode() {
+  itemDeleteMode = true;
+  selectedItemIds.clear();
+  renderItemsTab();
+}
+
+function handleCancelItemDeleteMode() {
+  itemDeleteMode = false;
+  selectedItemIds.clear();
+  renderItemsTab();
+}
+
 function parseBulkItems(raw) {
   const categoryByName = categories.reduce((map, category) => {
     map[normalizeName(category.name)] = category;
@@ -534,7 +640,7 @@ function parseBulkItems(raw) {
 
     const parts = trimmed.split(",").map(part => part.trim());
     if (parts.length !== 3) {
-      skipped.push(`行${index + 1}: 入力形式が不正です`);
+      skipped.push(`行${index + 1}: 入力形式が正しくありません`);
       return;
     }
 
@@ -544,7 +650,7 @@ function parseBulkItems(raw) {
       return;
     }
     if (!isValidSortOrder(sortRaw)) {
-      skipped.push(`行${index + 1}: ソート番号が数値ではありません`);
+      skipped.push(`行${index + 1}: ソート順は数値で入力してください`);
       return;
     }
 
@@ -567,7 +673,7 @@ function parseBulkCategories(raw) {
 
     const parts = trimmed.split(",").map(part => part.trim());
     if (parts.length !== 2) {
-      skipped.push(`行${index + 1}: 入力形式が不正です`);
+      skipped.push(`行${index + 1}: 入力形式が正しくありません`);
       return;
     }
 
@@ -578,11 +684,11 @@ function parseBulkCategories(raw) {
       return;
     }
     if (!isValidSortOrder(sortRaw)) {
-      skipped.push(`行${index + 1}: ソート番号が数値ではありません`);
+      skipped.push(`行${index + 1}: ソート順は数値で入力してください`);
       return;
     }
     if (existingNames.has(normalizedName) || pendingNames.has(normalizedName)) {
-      skipped.push(`行${index + 1}: 同名カテゴリは登録しません`);
+      skipped.push(`行${index + 1}: 同名カテゴリは登録できません`);
       return;
     }
 
@@ -619,7 +725,12 @@ function handleBulkAdd() {
   valid.forEach(entry => addItem(entry.name, entry.categoryId, entry.sortOrder));
   closeModal("bulk-modal");
   renderAll();
-  showToast(skipped.length > 0 ? `${valid.length}件登録しました。${skipped.length}件はスキップしました。` : `${valid.length}件登録しました。`, "success");
+  showToast(
+    skipped.length > 0
+      ? `${valid.length}件登録しました。${skipped.length}件はスキップしました。`
+      : `${valid.length}件登録しました。`,
+    "success"
+  );
 }
 
 function handleBulkAddCategories() {
@@ -672,7 +783,7 @@ function handleEditCategory(id) {
 function handleDeleteCategory(id) {
   showConfirm("このカテゴリを削除しますか？", () => {
     if (!deleteCategory(id)) {
-      showToast("商品に使われているカテゴリは削除できません。", "error");
+      showToast("商品に使用中のカテゴリは削除できません。", "error");
       return;
     }
     renderAll();
@@ -692,7 +803,7 @@ function handleBulkDeleteCategories() {
       showToast(`${result.deletedCount}件のカテゴリを削除しました。`, "success");
     }
     if (result.skipped.length > 0) {
-      showBulkResult("category-bulk-result", "warning", "削除できなかったカテゴリがあります", result.skipped.join("、"));
+      showBulkResult("category-bulk-result", "warning", "削除できなかったカテゴリがあります", result.skipped.join(" / "));
       showToast("使用中のカテゴリは削除できませんでした。", "error");
     } else {
       clearBulkResult("category-bulk-result");
@@ -718,38 +829,20 @@ function handleBulkDeleteItems() {
 
   showConfirm(`選択した${ids.length}件の商品を削除しますか？`, () => {
     const deletedCount = deleteItems(ids);
+    itemDeleteMode = false;
     renderAll();
     showToast(`${deletedCount}件の商品を削除しました。`, "success");
   });
 }
 
-function handleToggleBuyThisTime(id, checked) {
-  const item = items.find(entry => entry.id === id);
-  if (!item) return;
-  item.buyThisTime = checked;
-  if (!checked) item.purchased = false;
-  saveData(STORAGE_KEYS.items, items);
-  renderAll();
+function handleToggleShoppingSelection(id, checked) {
+  setItemShoppingSelection(id, checked);
+  renderListTab();
 }
 
 function handleTogglePurchased(id) {
   togglePurchased(id);
-  renderAll();
-}
-
-function handleClearAllBuy() {
-  const count = items.filter(item => item.buyThisTime).length;
-  if (count === 0) return;
-
-  showConfirm(`「今回買う」を${count}件すべて解除しますか？`, () => {
-    items.forEach(item => {
-      item.buyThisTime = false;
-      item.purchased = false;
-    });
-    saveData(STORAGE_KEYS.items, items);
-    renderAll();
-    showToast("「今回買う」をすべて解除しました。", "success");
-  }, "解除する");
+  renderListTab();
 }
 
 function setupForms() {
@@ -764,7 +857,7 @@ function setupForms() {
       return;
     }
     if (!isValidSortOrder(sortOrder)) {
-      showToast("ソート番号を正しく入力してください。", "error");
+      showToast("ソート順を正しく入力してください。", "error");
       return;
     }
 
@@ -799,7 +892,7 @@ function setupForms() {
       return;
     }
     if (!isValidSortOrder(sortOrder)) {
-      showToast("ソート番号を正しく入力してください。", "error");
+      showToast("ソート順を正しく入力してください。", "error");
       return;
     }
 
