@@ -4,79 +4,85 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>買い物リスト</title>
-  <meta name="description" content="カテゴリ・商品を管理できる買い物リストWebアプリ。データはlocalStorageに保存されます。" />
+  <meta
+    name="description"
+    content="カテゴリと商品を管理しながら、今回買うものをチェックできる買い物リストアプリです。"
+  />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <div class="app">
-
-    <!-- Header -->
     <header class="app-header">
-      <span class="app-header__icon">🛒</span>
+      <span class="app-header__icon" aria-hidden="true">🛒</span>
       <h1 class="app-header__title">買い物リスト</h1>
     </header>
 
-    <!-- Tab Bar -->
     <nav class="tab-bar" aria-label="メインナビゲーション">
-      <button id="tab-list"       class="tab-btn tab-btn--active" data-tab="list"       onclick="handleTabClick('list')"       aria-controls="panel-list">
-        🛍 今回の買い物
+      <button id="tab-list" class="tab-btn tab-btn--active" data-tab="list" onclick="handleTabClick('list')" aria-controls="panel-list">
+        買い物リスト
       </button>
-      <button id="tab-items"      class="tab-btn" data-tab="items"      onclick="handleTabClick('items')"      aria-controls="panel-items">
-        📦 商品管理
+      <button id="tab-items" class="tab-btn" data-tab="items" onclick="handleTabClick('items')" aria-controls="panel-items">
+        商品管理
       </button>
       <button id="tab-categories" class="tab-btn" data-tab="categories" onclick="handleTabClick('categories')" aria-controls="panel-categories">
-        📂 カテゴリ
+        カテゴリ管理
       </button>
     </nav>
 
-    <!-- ===================== 買い物リストタブ ===================== -->
     <section id="panel-list" class="tab-panel tab-panel--active" role="tabpanel" aria-labelledby="tab-list">
       <div id="list-content"></div>
     </section>
 
-    <!-- ===================== 商品管理タブ ===================== -->
     <section id="panel-items" class="tab-panel" role="tabpanel" aria-labelledby="tab-items">
       <div class="panel-header">
         <span class="panel-header__title">商品一覧</span>
         <div class="panel-header__actions">
           <button id="clear-buy-btn" class="btn btn--ghost btn--sm" onclick="handleClearAllBuy()" style="display:none">
-            ✕ 今回買うを全解除
+            今回買うを全解除
           </button>
           <button id="bulk-add-btn" class="btn btn--ghost btn--sm" onclick="openBulkAddModal()">
-            📋 一括登録
+            商品を一括登録
           </button>
           <button id="add-item-btn" class="btn btn--primary" onclick="openAddItemModal()">
-            ＋ 商品を追加
+            商品を追加
           </button>
         </div>
       </div>
       <div id="items-content"></div>
     </section>
 
-    <!-- ===================== カテゴリタブ ===================== -->
     <section id="panel-categories" class="tab-panel" role="tabpanel" aria-labelledby="tab-categories">
       <div class="panel-header">
         <span class="panel-header__title">カテゴリ一覧</span>
-        <button id="add-category-btn" class="btn btn--primary" onclick="openAddCategoryModal()">
-          ＋ カテゴリを追加
-        </button>
+        <div class="panel-header__actions">
+          <button id="category-bulk-open-btn" class="btn btn--ghost btn--sm" onclick="openCategoryBulkModal()">
+            一括登録
+          </button>
+          <button id="add-category-btn" class="btn btn--primary" onclick="openAddCategoryModal()">
+            カテゴリを追加
+          </button>
+        </div>
       </div>
+
+      <div id="category-bulk-result" class="bulk-result" style="display:none"></div>
+
       <div id="categories-content"></div>
     </section>
+  </div>
 
-  </div><!-- /.app -->
-
-  <!-- ===================== カテゴリ モーダル ===================== -->
   <div id="cat-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="cat-modal-title">
     <div class="modal__box">
       <h2 id="cat-modal-title" class="modal__title">カテゴリを追加</h2>
       <form id="cat-form" novalidate>
         <div class="form-group">
           <label for="cat-name">カテゴリ名</label>
-          <input id="cat-name" type="text" placeholder="例：野菜・果物" maxlength="50" required />
+          <input id="cat-name" type="text" placeholder="例: 野菜" maxlength="50" required />
         </div>
         <div class="form-group">
           <label for="cat-sort">ソート番号</label>
@@ -90,14 +96,13 @@
     </div>
   </div>
 
-  <!-- ===================== 商品 モーダル ===================== -->
   <div id="item-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="item-modal-title">
     <div class="modal__box">
       <h2 id="item-modal-title" class="modal__title">商品を追加</h2>
       <form id="item-form" novalidate>
         <div class="form-group">
           <label for="item-name">商品名</label>
-          <input id="item-name" type="text" placeholder="例：牛乳" maxlength="80" required />
+          <input id="item-name" type="text" placeholder="例: 牛乳" maxlength="80" required />
         </div>
         <div class="form-group">
           <label for="item-category">カテゴリ</label>
@@ -117,7 +122,6 @@
     </div>
   </div>
 
-  <!-- ===================== 確認モーダル ===================== -->
   <div id="confirm-modal" class="modal" role="alertdialog" aria-modal="true" aria-labelledby="confirm-message">
     <div class="modal__box modal__box--sm">
       <p id="confirm-message" class="confirm-message"></p>
@@ -128,21 +132,15 @@
     </div>
   </div>
 
-  <!-- ===================== 一括登録モーダル ===================== -->
   <div id="bulk-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="bulk-modal-title">
     <div class="modal__box modal__box--lg">
       <h2 id="bulk-modal-title" class="modal__title">商品を一括登録</h2>
-      <p class="modal__desc">1行に1商品、カンマ区切りで入力してください。</p>
-      <p class="modal__format">形式：<code>商品名,カテゴリ名,ソート番号</code></p>
+      <p class="modal__desc">1行ごとに1商品を入力します。</p>
+      <p class="modal__format"><code>商品名,カテゴリ名,ソート番号</code></p>
       <div class="form-group">
         <label for="bulk-text">商品リスト</label>
-        <textarea id="bulk-text" class="bulk-textarea"
-          placeholder="例：
-卵,食品,10
-玉ねぎ,野菜,20
-牛乳,乳製品,30" rows="10"></textarea>
+        <textarea id="bulk-text" class="bulk-textarea" rows="10" placeholder="牛乳,乳製品,10&#10;卵,冷蔵品,20&#10;トイレットペーパー,日用品,30"></textarea>
       </div>
-      <div id="bulk-preview" class="bulk-preview" style="display:none"></div>
       <div class="modal__actions">
         <button type="button" class="btn btn--ghost" onclick="closeModal('bulk-modal')">キャンセル</button>
         <button id="bulk-submit-btn" type="button" class="btn btn--primary" onclick="handleBulkAdd()">登録する</button>
@@ -150,7 +148,22 @@
     </div>
   </div>
 
-  <!-- Toast Container -->
+  <div id="category-bulk-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="category-bulk-modal-title">
+    <div class="modal__box modal__box--lg">
+      <h2 id="category-bulk-modal-title" class="modal__title">カテゴリを一括登録</h2>
+      <p class="modal__desc">1行ごとに1カテゴリを入力します。</p>
+      <p class="modal__format"><code>カテゴリ名,ソート番号</code></p>
+      <div class="form-group">
+        <label for="category-bulk-text">カテゴリリスト</label>
+        <textarea id="category-bulk-text" class="bulk-textarea" rows="8" placeholder="野菜,10&#10;肉・魚,20&#10;日用品,30"></textarea>
+      </div>
+      <div class="modal__actions">
+        <button type="button" class="btn btn--ghost" onclick="closeCategoryBulkModal()">キャンセル</button>
+        <button type="button" class="btn btn--primary" onclick="handleBulkAddCategories()">登録実行</button>
+      </div>
+    </div>
+  </div>
+
   <div id="toast-container" aria-live="polite"></div>
 
   <script src="script.js"></script>
