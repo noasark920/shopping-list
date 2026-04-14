@@ -11,6 +11,7 @@ let categories = loadData(STORAGE_KEYS.categories);
 let items = normalizeItems(loadData(STORAGE_KEYS.items));
 let activeTab = "list";
 let shoppingMode = "select";
+let shoppingModeHelpOpen = false;
 let itemDeleteMode = false;
 let selectedCategoryIds = new Set();
 let selectedItemIds = new Set();
@@ -418,6 +419,51 @@ function renderShoppingModePanel(selectedCount) {
   `;
 }
 
+function renderShoppingModePanelCompact(selectedCount) {
+  const descriptions = {
+    select: "今回買う商品を選ぶモード",
+    shopping: "選択した商品の購入状況をチェックするモード",
+  };
+
+  return `
+    <div class="mode-panel mode-panel--list">
+      <div class="mode-panel__top">
+        <div class="mode-switch mode-switch--list" role="tablist" aria-label="買い物リストモード切替">
+          <button
+            type="button"
+            class="btn btn--ghost mode-switch__btn mode-switch__btn--compact ${shoppingMode === "select" ? "mode-switch__btn--active" : ""}"
+            onclick="handleShoppingModeChange('select')"
+          >
+            対象選択モード（${selectedCount}）
+          </button>
+          <button
+            type="button"
+            class="btn btn--ghost mode-switch__btn mode-switch__btn--compact ${shoppingMode === "shopping" ? "mode-switch__btn--active" : ""}"
+            onclick="handleShoppingModeChange('shopping')"
+          >
+            買い物モード
+          </button>
+        </div>
+        <div class="mode-help">
+          <button
+            type="button"
+            class="mode-help__trigger"
+            aria-label="モードの説明を表示"
+            aria-expanded="${shoppingModeHelpOpen ? "true" : "false"}"
+            onclick="toggleShoppingModeHelp(event)"
+          >
+            ?
+          </button>
+          <div class="mode-help__tooltip ${shoppingModeHelpOpen ? "mode-help__tooltip--open" : ""}" role="tooltip">
+            <p class="mode-help__item"><strong>対象選択モード</strong><span>${escapeHtml(descriptions.select)}</span></p>
+            <p class="mode-help__item"><strong>買い物モード</strong><span>${escapeHtml(descriptions.shopping)}</span></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 function renderListTab() {
   const container = document.getElementById("list-content");
   const sortedItems = getSortedItems();
@@ -429,7 +475,7 @@ function renderListTab() {
 
   if (sortedItems.length === 0) {
     container.innerHTML = `
-      ${renderShoppingModePanel(0)}
+      ${renderShoppingModePanelCompact(0)}
       <div class="empty-state">
         <div class="empty-state__icon">🧾</div>
         <p>商品管理から商品を登録すると、買い物リストで選択できるようになります。</p>
@@ -440,7 +486,7 @@ function renderListTab() {
 
   if (shoppingMode === "shopping" && visibleItems.length === 0) {
     container.innerHTML = `
-      ${renderShoppingModePanel(selectedCount)}
+      ${renderShoppingModePanelCompact(selectedCount)}
       <div class="empty-state">
         <div class="empty-state__icon">🛍️</div>
         <p>対象選択モードで今回買う商品を選んでください。</p>
@@ -449,7 +495,7 @@ function renderListTab() {
     return;
   }
 
-  let html = `${renderShoppingModePanel(selectedCount)}<div class="list-table">`;
+  let html = `${renderShoppingModePanelCompact(selectedCount)}<div class="list-table list-table--compact">`;
 
   visibleItems.forEach(item => {
     const categoryName = item.categoryId && categoryMap[item.categoryId] ? categoryMap[item.categoryId].name : MESSAGES.noCategory;
@@ -610,6 +656,19 @@ function handleTabClick(tab) {
 
 function handleShoppingModeChange(mode) {
   shoppingMode = mode;
+  shoppingModeHelpOpen = false;
+  renderListTab();
+}
+
+function toggleShoppingModeHelp(event) {
+  event.stopPropagation();
+  shoppingModeHelpOpen = !shoppingModeHelpOpen;
+  renderListTab();
+}
+
+function closeShoppingModeHelp() {
+  if (!shoppingModeHelpOpen) return;
+  shoppingModeHelpOpen = false;
   renderListTab();
 }
 
@@ -925,8 +984,19 @@ function setupModals() {
   });
 }
 
+function setupShoppingModeHelp() {
+  document.addEventListener("click", event => {
+    const helpArea = document.querySelector(".mode-help");
+    if (!shoppingModeHelpOpen || !helpArea) return;
+    if (!helpArea.contains(event.target)) {
+      closeShoppingModeHelp();
+    }
+  });
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   setupForms();
   setupModals();
+  setupShoppingModeHelp();
   renderAll();
 });
