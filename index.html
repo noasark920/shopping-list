@@ -19,32 +19,70 @@
 <body>
   <div class="app">
     <header class="app-header">
-      <span class="app-header__icon" aria-hidden="true">🛒</span>
-      <h1 class="app-header__title">買い物リストアプリ</h1>
+      <div class="app-header__brand">
+        <span class="app-header__icon" aria-hidden="true">🛒</span>
+        <h1 class="app-header__title">買い物リストアプリ</h1>
+      </div>
+      <div class="app-menu">
+        <button
+          id="menu-toggle-btn"
+          class="app-menu__toggle"
+          type="button"
+          aria-label="画面切替メニューを開く"
+          aria-haspopup="true"
+          aria-expanded="false"
+          aria-controls="app-menu-dropdown"
+          onclick="toggleAppMenu(event)"
+        >
+          <span class="app-menu__toggle-line" aria-hidden="true"></span>
+          <span class="app-menu__toggle-line" aria-hidden="true"></span>
+          <span class="app-menu__toggle-line" aria-hidden="true"></span>
+        </button>
+        <div id="app-menu-dropdown" class="app-menu__dropdown" role="menu" aria-label="画面切替">
+          <button
+            id="menu-list"
+            class="app-menu__item app-menu__item--active"
+            type="button"
+            data-tab="list"
+            role="menuitem"
+            onclick="handleTabClick('list')"
+          >
+            買い物リスト
+          </button>
+          <button
+            id="menu-items"
+            class="app-menu__item"
+            type="button"
+            data-tab="items"
+            role="menuitem"
+            onclick="handleTabClick('items')"
+          >
+            商品管理
+          </button>
+          <button
+            id="menu-categories"
+            class="app-menu__item"
+            type="button"
+            data-tab="categories"
+            role="menuitem"
+            onclick="handleTabClick('categories')"
+          >
+            カテゴリ管理
+          </button>
+        </div>
+      </div>
     </header>
 
-    <nav class="tab-bar" aria-label="メインナビゲーション">
-      <button id="tab-list" class="tab-btn tab-btn--active" data-tab="list" onclick="handleTabClick('list')" aria-controls="panel-list">
-        買い物リスト
-      </button>
-      <button id="tab-items" class="tab-btn" data-tab="items" onclick="handleTabClick('items')" aria-controls="panel-items">
-        商品管理
-      </button>
-      <button id="tab-categories" class="tab-btn" data-tab="categories" onclick="handleTabClick('categories')" aria-controls="panel-categories">
-        カテゴリ管理
-      </button>
-    </nav>
-
-    <section id="panel-list" class="tab-panel tab-panel--active" role="tabpanel" aria-labelledby="tab-list">
+    <section id="panel-list" class="tab-panel tab-panel--active" role="tabpanel" aria-labelledby="menu-list">
       <div id="list-content"></div>
     </section>
 
-    <section id="panel-items" class="tab-panel" role="tabpanel" aria-labelledby="tab-items">
+    <section id="panel-items" class="tab-panel" role="tabpanel" aria-labelledby="menu-items">
       <div class="panel-header">
         <span class="panel-header__title">商品一覧</span>
         <div class="panel-header__actions">
           <button id="bulk-add-btn" class="btn btn--ghost btn--sm" onclick="openBulkAddModal()">
-            一括登録
+            一括追加
           </button>
           <button id="toggle-item-delete-mode-btn" class="btn btn--ghost btn--sm" onclick="handleToggleItemDeleteMode()">
             一括削除
@@ -57,12 +95,12 @@
       <div id="items-content"></div>
     </section>
 
-    <section id="panel-categories" class="tab-panel" role="tabpanel" aria-labelledby="tab-categories">
+    <section id="panel-categories" class="tab-panel" role="tabpanel" aria-labelledby="menu-categories">
       <div class="panel-header">
         <span class="panel-header__title">カテゴリ一覧</span>
         <div class="panel-header__actions">
           <button id="category-bulk-open-btn" class="btn btn--ghost btn--sm" onclick="openCategoryBulkModal()">
-            一括登録
+            一括追加
           </button>
           <button id="add-category-btn" class="btn btn--primary" onclick="openAddCategoryModal()">
             カテゴリを追加
@@ -134,23 +172,23 @@
 
   <div id="bulk-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="bulk-modal-title">
     <div class="modal__box modal__box--lg">
-      <h2 id="bulk-modal-title" class="modal__title">商品を一括登録</h2>
+      <h2 id="bulk-modal-title" class="modal__title">商品を一括追加</h2>
       <p class="modal__desc">1行ごとに1商品を入力してください。</p>
       <p class="modal__format"><code>商品名,カテゴリ名,ソート順</code></p>
       <div class="form-group">
         <label for="bulk-text">商品リスト</label>
-        <textarea id="bulk-text" class="bulk-textarea" rows="10" placeholder="牛乳,乳製品,10&#10;卵,冷蔵品,20&#10;トイレットペーパー,日用品,30"></textarea>
+        <textarea id="bulk-text" class="bulk-textarea" rows="10" placeholder="牛乳,乳製品,10&#10;卵,冷蔵,20&#10;トイレットペーパー,日用品,30"></textarea>
       </div>
       <div class="modal__actions">
         <button type="button" class="btn btn--ghost" onclick="closeModal('bulk-modal')">キャンセル</button>
-        <button id="bulk-submit-btn" type="button" class="btn btn--primary" onclick="handleBulkAdd()">登録する</button>
+        <button id="bulk-submit-btn" type="button" class="btn btn--primary" onclick="handleBulkAdd()">追加する</button>
       </div>
     </div>
   </div>
 
   <div id="category-bulk-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="category-bulk-modal-title">
     <div class="modal__box modal__box--lg">
-      <h2 id="category-bulk-modal-title" class="modal__title">カテゴリを一括登録</h2>
+      <h2 id="category-bulk-modal-title" class="modal__title">カテゴリを一括追加</h2>
       <p class="modal__desc">1行ごとに1カテゴリを入力してください。</p>
       <p class="modal__format"><code>カテゴリ名,ソート順</code></p>
       <div class="form-group">
@@ -159,7 +197,7 @@
       </div>
       <div class="modal__actions">
         <button type="button" class="btn btn--ghost" onclick="closeCategoryBulkModal()">キャンセル</button>
-        <button type="button" class="btn btn--primary" onclick="handleBulkAddCategories()">登録する</button>
+        <button type="button" class="btn btn--primary" onclick="handleBulkAddCategories()">追加する</button>
       </div>
     </div>
   </div>

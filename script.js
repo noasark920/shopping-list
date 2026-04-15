@@ -10,6 +10,7 @@ const MESSAGES = {
 let categories = loadData(STORAGE_KEYS.categories);
 let items = normalizeItems(loadData(STORAGE_KEYS.items));
 let activeTab = "list";
+let appMenuOpen = false;
 let shoppingMode = "select";
 let shoppingModeHelpOpen = false;
 let itemDeleteMode = false;
@@ -17,6 +18,7 @@ let selectedCategoryIds = new Set();
 let selectedItemIds = new Set();
 
 saveData(STORAGE_KEYS.items, items);
+MESSAGES.noCategory = "カテゴリなし";
 
 function loadData(key) {
   try {
@@ -239,6 +241,10 @@ function getSortedItems() {
   });
 }
 
+function getRemainingShoppingCount(list = items) {
+  return list.filter(item => item.selectedForShopping && !item.purchased).length;
+}
+
 function cleanupSelections() {
   const categoryIdSet = new Set(categories.map(category => category.id));
   const itemIdSet = new Set(items.map(item => item.id));
@@ -381,15 +387,23 @@ function openEditItemModal(id) {
 }
 
 function renderTabs() {
-  document.querySelectorAll(".tab-btn").forEach(button => {
-    button.classList.toggle("tab-btn--active", button.dataset.tab === activeTab);
+  document.querySelectorAll(".app-menu__item").forEach(button => {
+    button.classList.toggle("app-menu__item--active", button.dataset.tab === activeTab);
   });
   document.querySelectorAll(".tab-panel").forEach(panel => {
     panel.classList.toggle("tab-panel--active", panel.id === `panel-${activeTab}`);
   });
+  const menuToggleButton = document.getElementById("menu-toggle-btn");
+  const menuDropdown = document.getElementById("app-menu-dropdown");
+  if (menuToggleButton) {
+    menuToggleButton.setAttribute("aria-expanded", appMenuOpen ? "true" : "false");
+  }
+  if (menuDropdown) {
+    menuDropdown.classList.toggle("app-menu__dropdown--open", appMenuOpen);
+  }
 }
 
-function renderShoppingModePanel(selectedCount) {
+function renderShoppingModePanel(remainingCount) {
   const descriptions = {
     select: "今回買う商品を選ぶモードです。ここでは対象商品のみ切り替えます。",
     shopping: "選択済みの商品だけを表示し、買ったものにチェックを付けます。",
@@ -994,9 +1008,162 @@ function setupShoppingModeHelp() {
   });
 }
 
+function renderTabs() {
+  document.querySelectorAll(".app-menu__item").forEach(button => {
+    button.classList.toggle("app-menu__item--active", button.dataset.tab === activeTab);
+  });
+  document.querySelectorAll(".tab-panel").forEach(panel => {
+    panel.classList.toggle("tab-panel--active", panel.id === `panel-${activeTab}`);
+  });
+
+  const menuToggleButton = document.getElementById("menu-toggle-btn");
+  const menuDropdown = document.getElementById("app-menu-dropdown");
+  if (menuToggleButton) {
+    menuToggleButton.setAttribute("aria-expanded", appMenuOpen ? "true" : "false");
+  }
+  if (menuDropdown) {
+    menuDropdown.classList.toggle("app-menu__dropdown--open", appMenuOpen);
+  }
+}
+
+function renderShoppingModePanelCompact(remainingCount) {
+  const descriptions = {
+    select: "今回の買い物対象を選ぶモード",
+    shopping: "選択した商品の購入状況をチェックするモード",
+  };
+
+  return `
+    <div class="mode-panel mode-panel--list">
+      <div class="mode-panel__top">
+        <div class="mode-switch mode-switch--list" role="tablist" aria-label="買い物リストモード切替">
+          <button
+            type="button"
+            class="btn btn--ghost mode-switch__btn mode-switch__btn--compact ${shoppingMode === "select" ? "mode-switch__btn--active" : ""}"
+            onclick="handleShoppingModeChange('select')"
+          >
+            <span class="mode-switch__label">対象選択モード</span>
+          </button>
+          <button
+            type="button"
+            class="btn btn--ghost mode-switch__btn mode-switch__btn--compact ${shoppingMode === "shopping" ? "mode-switch__btn--active" : ""}"
+            onclick="handleShoppingModeChange('shopping')"
+          >
+            <span class="mode-switch__label">買い物モード <span class="mode-switch__count">(${remainingCount})</span></span>
+          </button>
+        </div>
+        <div class="mode-help">
+          <button
+            type="button"
+            class="mode-help__trigger"
+            aria-label="モードの説明を表示"
+            aria-expanded="${shoppingModeHelpOpen ? "true" : "false"}"
+            onclick="toggleShoppingModeHelp(event)"
+          >
+            ?
+          </button>
+          <div class="mode-help__tooltip ${shoppingModeHelpOpen ? "mode-help__tooltip--open" : ""}" role="tooltip">
+            <p class="mode-help__item"><strong>対象選択モード</strong><span>${escapeHtml(descriptions.select)}</span></p>
+            <p class="mode-help__item"><strong>買い物モード</strong><span>${escapeHtml(descriptions.shopping)}</span></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderListTab() {
+  const container = document.getElementById("list-content");
+  const sortedItems = getSortedItems();
+  const categoryMap = getCategoryMap();
+  const visibleItems = shoppingMode === "shopping"
+    ? sortedItems.filter(item => item.selectedForShopping)
+    : sortedItems;
+  const remainingCount = getRemainingShoppingCount(sortedItems);
+
+  if (sortedItems.length === 0) {
+    container.innerHTML = `
+      ${renderShoppingModePanelCompact(0)}
+      <div class="empty-state">
+        <div class="empty-state__icon">🧾</div>
+        <p>商品管理から商品を追加すると、買い物リストで対象選択できるようになります。</p>
+      </div>
+    `;
+    return;
+  }
+
+  if (shoppingMode === "shopping" && visibleItems.length === 0) {
+    container.innerHTML = `
+      ${renderShoppingModePanelCompact(remainingCount)}
+      <div class="empty-state">
+        <div class="empty-state__icon">✅</div>
+        <p>対象選択モードで今回買う商品を選んでください。</p>
+      </div>
+    `;
+    return;
+  }
+
+  let html = `${renderShoppingModePanelCompact(remainingCount)}<div class="list-table list-table--compact">`;
+
+  visibleItems.forEach(item => {
+    const categoryName = item.categoryId && categoryMap[item.categoryId] ? categoryMap[item.categoryId].name : MESSAGES.noCategory;
+    const checked = shoppingMode === "select" ? item.selectedForShopping : item.purchased;
+    const changeHandler = shoppingMode === "select"
+      ? `handleToggleShoppingSelection('${item.id}', this.checked)`
+      : `handleTogglePurchased('${item.id}')`;
+
+    html += `
+      <label class="list-row ${shoppingMode === "shopping" && item.purchased ? "list-row--purchased" : ""}" data-id="${item.id}">
+        <span class="list-row__check">
+          <input
+            type="checkbox"
+            ${checked ? "checked" : ""}
+            onchange="${changeHandler}"
+          />
+        </span>
+        <span class="list-row__main">
+          <span class="list-row__name">${escapeHtml(item.name)}</span>
+          <span class="list-row__sub">${escapeHtml(categoryName)}</span>
+        </span>
+      </label>
+    `;
+  });
+
+  html += "</div>";
+  container.innerHTML = html;
+}
+
+function handleTabClick(tab) {
+  activeTab = tab;
+  appMenuOpen = false;
+  renderAll();
+}
+
+function toggleAppMenu(event) {
+  event.stopPropagation();
+  appMenuOpen = !appMenuOpen;
+  renderTabs();
+}
+
+function closeAppMenu() {
+  if (!appMenuOpen) return;
+  appMenuOpen = false;
+  renderTabs();
+}
+
+function setupAppMenu() {
+  document.addEventListener("click", event => {
+    const menuArea = document.querySelector(".app-menu");
+    if (!appMenuOpen || !menuArea) return;
+    if (!menuArea.contains(event.target)) {
+      closeAppMenu();
+    }
+  });
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   setupForms();
   setupModals();
   setupShoppingModeHelp();
+  setupAppMenu();
   renderAll();
 });
