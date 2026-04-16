@@ -15,7 +15,7 @@ let shoppingMode = "shopping";
 let shoppingModeHelpOpen = false;
 let itemDeleteMode = false;
 let selectedCategoryIds = new Set();
-let selectedItemIds = new Set();
+let beforeInstallPromptFired = false;
 
 saveData(STORAGE_KEYS.items, items);
 MESSAGES.noCategory = "カテゴリなし";
@@ -1195,17 +1195,30 @@ function renderStandaloneDebug() {
     debugNode.style.position = "fixed";
     debugNode.style.bottom = "10px";
     debugNode.style.right = "10px";
-    debugNode.style.padding = "6px 10px";
-    debugNode.style.background = "rgba(0, 0, 0, 0.65)";
+    debugNode.style.padding = "8px 12px";
+    debugNode.style.background = "rgba(0, 0, 0, 0.75)";
     debugNode.style.color = "#fff";
-    debugNode.style.fontSize = "0.75rem";
+    debugNode.style.fontSize = "0.7rem";
     debugNode.style.borderRadius = "12px";
     debugNode.style.zIndex = "9999";
     debugNode.style.pointerEvents = "none";
-    debugNode.style.opacity = "0.85";
+    debugNode.style.opacity = "0.9";
+    debugNode.style.lineHeight = "1.4";
     document.body.appendChild(debugNode);
   }
-  debugNode.textContent = `standalone: ${isStandaloneMode() ? "yes" : "no"}`;
+  const standalone = isStandaloneMode() ? "yes" : "no";
+  const swSupported = 'serviceWorker' in navigator ? "yes" : "no";
+  const swController = navigator.serviceWorker?.controller ? "yes" : "no";
+  const manifestFound = document.querySelector('link[rel="manifest"]') ? "yes" : "no";
+  const bipFired = beforeInstallPromptFired ? "yes" : "no";
+  debugNode.innerHTML = `
+    standalone: ${standalone}<br>
+    SW supported: ${swSupported}<br>
+    SW controller: ${swController}<br>
+    manifest: ${manifestFound}<br>
+    BIP fired: ${bipFired}
+  `;
+  console.log('PWA Diagnostics:', { standalone, swSupported, swController, manifestFound, bipFired });
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -1213,6 +1226,10 @@ document.addEventListener("DOMContentLoaded", () => {
   setupModals();
   setupShoppingModeHelp();
   setupAppMenu();
+  window.addEventListener('beforeinstallprompt', () => {
+    beforeInstallPromptFired = true;
+    renderStandaloneDebug();
+  });
   renderAll();
   renderStandaloneDebug();
 });
