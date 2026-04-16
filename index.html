@@ -15,6 +15,11 @@
     rel="stylesheet"
   />
   <link rel="stylesheet" href="style.css" />
+  <meta name="theme-color" content="#0f1117" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="買い物リスト" />
+  <link rel="manifest" href="manifest.webmanifest" />
 </head>
 <body>
   <div class="app">
@@ -205,5 +210,13 @@
   <div id="toast-container" aria-live="polite"></div>
 
   <script src="script.js"></script>
+  
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js').catch(err => {
+        console.log('Service Worker registration failed:', err);
+      });
+    }
+  </script>
 </body>
 </html>

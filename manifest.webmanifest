@@ -1,0 +1,25 @@
+{
+  "name": "買い物リストアプリ",
+  "short_name": "買い物リスト",
+  "description": "カテゴリと商品を管理しながら、今回の買い物対象と購入済み状態を分けて扱える買い物リストアプリです。",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0b0d14",
+  "theme_color": "#0f1117",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
