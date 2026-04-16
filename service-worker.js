@@ -1,10 +1,10 @@
 const CACHE_VERSION = 'shopping-list-v1';
 const ASSETS_TO_CACHE = [
-  '/shopping-list/',
-  '/shopping-list/index.html',
-  '/shopping-list/style.css',
-  '/shopping-list/script.js',
-  '/shopping-list/manifest.webmanifest'
+  './',
+  './index.html',
+  './style.css',
+  './script.js',
+  './manifest.webmanifest'
 ];
 
 // Install event: cache core app files
@@ -57,7 +57,7 @@ self.addEventListener('fetch', event => {
       caches.match(event.request).then(response => {
         return response || fetch(event.request);
       }).catch(() => {
-        return caches.match('/shopping-list/index.html');
+        return caches.match('./index.html');
       })
     );
   } else {
