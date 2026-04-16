@@ -366,18 +366,6 @@ body.body--modal-open { overflow: hidden; }
   display: block;
 }
 
-.mode-actions {
-  display: flex;
-  justify-content: center;
-  margin-top: 8px;
-}
-
-.mode-action-btn {
-  min-width: 70px;
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
-}
-
 .mode-help__item {
   display: flex;
   flex-direction: column;
