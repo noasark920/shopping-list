@@ -1,10 +1,9 @@
 const CACHE_VERSION = 'shopping-list-v1';
 const ASSETS_TO_CACHE = [
-  '/',
-  '/index.html',
-  '/style.css',
-  '/script.js',
-  '/manifest.webmanifest'
+  './index.html',
+  './style.css',
+  './script.js',
+  './manifest.webmanifest'
 ];
 
 // Install event: cache core app files
@@ -45,11 +44,11 @@ self.addEventListener('fetch', event => {
   }
   
   // Check if this is a core app file
+  const scopePath = new URL(self.registration.scope).pathname;
   const isCoreFile = ASSETS_TO_CACHE.some(asset => {
-    return url.pathname === asset || 
-           (url.pathname === '/' && asset === '/') ||
-           url.pathname.endsWith(asset);
-  });
+    const normalizedAsset = asset.replace(/^\.\//, '');
+    return normalizedAsset && url.pathname.endsWith(normalizedAsset);
+  }) || url.pathname === scopePath;
   
   if (isCoreFile) {
     // Cache-first strategy for app shell
@@ -57,7 +56,7 @@ self.addEventListener('fetch', event => {
       caches.match(event.request).then(response => {
         return response || fetch(event.request);
       }).catch(() => {
-        return caches.match('/index.html');
+        return caches.match('./index.html');
       })
     );
   } else {
