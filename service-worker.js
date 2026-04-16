@@ -1,10 +1,12 @@
-const CACHE_VERSION = 'shopping-list-v1';
+const CACHE_VERSION = 'shopping-list-v2';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './style.css',
   './script.js',
-  './manifest.webmanifest'
+  './manifest.webmanifest',
+  './icon-192.png',
+  './icon-512.png'
 ];
 
 // Install event: cache core app files
