@@ -16,11 +16,6 @@ let shoppingModeHelpOpen = false;
 let itemDeleteMode = false;
 let selectedCategoryIds = new Set();
 let selectedItemIds = new Set();
-let beforeinstallpromptFired = false;
-
-window.addEventListener('beforeinstallprompt', () => {
-  beforeinstallpromptFired = true;
-});
 
 saveData(STORAGE_KEYS.items, items);
 MESSAGES.noCategory = "カテゴリなし";
@@ -1198,10 +1193,4 @@ document.addEventListener("DOMContentLoaded", () => {
   setupShoppingModeHelp();
   setupAppMenu();
   renderAll();
-
-  console.log(`standalone: ${isStandaloneMode() ? "yes" : "no"}`);
-  console.log(`serviceWorker supported: ${'serviceWorker' in navigator ? "yes" : "no"}`);
-  console.log(`serviceWorker controller active: ${navigator.serviceWorker.controller !== null ? "yes" : "no"}`);
-  console.log(`manifest link found: ${document.querySelector('link[rel="manifest"]') !== null ? "yes" : "no"}`);
-  console.log(`beforeinstallprompt fired: ${beforeinstallpromptFired ? "yes" : "no"}`);
 });
