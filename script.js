@@ -16,6 +16,11 @@ let shoppingModeHelpOpen = false;
 let itemDeleteMode = false;
 let selectedCategoryIds = new Set();
 let selectedItemIds = new Set();
+let beforeinstallpromptFired = false;
+
+window.addEventListener('beforeinstallprompt', () => {
+  beforeinstallpromptFired = true;
+});
 
 saveData(STORAGE_KEYS.items, items);
 MESSAGES.noCategory = "カテゴリなし";
@@ -1187,32 +1192,16 @@ function isStandaloneMode() {
   return iosStandalone || displayStandalone;
 }
 
-function renderStandaloneDebug() {
-  let debugNode = document.getElementById("standalone-debug");
-  if (!debugNode) {
-    debugNode = document.createElement("div");
-    debugNode.id = "standalone-debug";
-    debugNode.style.position = "fixed";
-    debugNode.style.bottom = "10px";
-    debugNode.style.right = "10px";
-    debugNode.style.padding = "6px 10px";
-    debugNode.style.background = "rgba(0, 0, 0, 0.65)";
-    debugNode.style.color = "#fff";
-    debugNode.style.fontSize = "0.75rem";
-    debugNode.style.borderRadius = "12px";
-    debugNode.style.zIndex = "9999";
-    debugNode.style.pointerEvents = "none";
-    debugNode.style.opacity = "0.85";
-    document.body.appendChild(debugNode);
-  }
-  debugNode.textContent = `standalone: ${isStandaloneMode() ? "yes" : "no"}`;
-}
-
 document.addEventListener("DOMContentLoaded", () => {
   setupForms();
   setupModals();
   setupShoppingModeHelp();
   setupAppMenu();
   renderAll();
-  renderStandaloneDebug();
+
+  console.log(`standalone: ${isStandaloneMode() ? "yes" : "no"}`);
+  console.log(`serviceWorker supported: ${'serviceWorker' in navigator ? "yes" : "no"}`);
+  console.log(`serviceWorker controller active: ${navigator.serviceWorker.controller !== null ? "yes" : "no"}`);
+  console.log(`manifest link found: ${document.querySelector('link[rel="manifest"]') !== null ? "yes" : "no"}`);
+  console.log(`beforeinstallprompt fired: ${beforeinstallpromptFired ? "yes" : "no"}`);
 });
