@@ -1181,10 +1181,38 @@ function setupAppMenu() {
   });
 }
 
+function isStandaloneMode() {
+  const iosStandalone = window.navigator.standalone === true;
+  const displayStandalone = window.matchMedia?.("(display-mode: standalone)")?.matches === true;
+  return iosStandalone || displayStandalone;
+}
+
+function renderStandaloneDebug() {
+  let debugNode = document.getElementById("standalone-debug");
+  if (!debugNode) {
+    debugNode = document.createElement("div");
+    debugNode.id = "standalone-debug";
+    debugNode.style.position = "fixed";
+    debugNode.style.bottom = "10px";
+    debugNode.style.right = "10px";
+    debugNode.style.padding = "6px 10px";
+    debugNode.style.background = "rgba(0, 0, 0, 0.65)";
+    debugNode.style.color = "#fff";
+    debugNode.style.fontSize = "0.75rem";
+    debugNode.style.borderRadius = "12px";
+    debugNode.style.zIndex = "9999";
+    debugNode.style.pointerEvents = "none";
+    debugNode.style.opacity = "0.85";
+    document.body.appendChild(debugNode);
+  }
+  debugNode.textContent = `standalone: ${isStandaloneMode() ? "yes" : "no"}`;
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   setupForms();
   setupModals();
   setupShoppingModeHelp();
   setupAppMenu();
   renderAll();
+  renderStandaloneDebug();
 });
