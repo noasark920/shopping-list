@@ -11,7 +11,7 @@ let categories = loadData(STORAGE_KEYS.categories);
 let items = normalizeItems(loadData(STORAGE_KEYS.items));
 let activeTab = "list";
 let appMenuOpen = false;
-let shoppingMode = "select";
+let shoppingMode = "shopping";
 let shoppingModeHelpOpen = false;
 let itemDeleteMode = false;
 let selectedCategoryIds = new Set();
@@ -918,6 +918,18 @@ function handleTogglePurchased(id) {
   renderListTab();
 }
 
+function handleResetShoppingSelection() {
+  showConfirm("選択中の商品をすべて解除しますか？", () => {
+    items.forEach(item => {
+      item.selectedForShopping = false;
+      item.purchased = false;
+    });
+    saveItems();
+    renderListTab();
+    showToast("対象選択をすべて解除しました。", "success");
+  }, "解除する");
+}
+
 function setupForms() {
   document.getElementById("cat-form").addEventListener("submit", event => {
     event.preventDefault();
@@ -1032,6 +1044,14 @@ function renderShoppingModePanelCompact(remainingCount) {
     shopping: "選択した商品の購入状況をチェックするモード",
   };
 
+  const resetButton = shoppingMode === "select" ? `
+      <div class="mode-actions">
+        <button type="button" class="btn btn--ghost btn--sm mode-action-btn" onclick="handleResetShoppingSelection()">
+          すべて解除
+        </button>
+      </div>
+    ` : "";
+
   return `
     <div class="mode-panel mode-panel--list">
       <div class="mode-panel__top">
@@ -1067,6 +1087,7 @@ function renderShoppingModePanelCompact(remainingCount) {
           </div>
         </div>
       </div>
+      ${resetButton}
     </div>
   `;
 }
