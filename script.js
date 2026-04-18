@@ -186,6 +186,64 @@ function applyBackupData(backup) {
   showToast("バックアップをインポートしました。", "success");
 }
 
+function handleDragStart(event, id) {
+  event.dataTransfer.setData("text/plain", id);
+  event.dataTransfer.effectAllowed = "move";
+}
+
+function handleDragOver(event) {
+  event.preventDefault();
+  event.dataTransfer.dropEffect = "move";
+}
+
+function handleDrop(event, type) {
+  event.preventDefault();
+  const draggedId = event.dataTransfer.getData("text/plain");
+  const targetRow = event.target.closest(".data-row");
+  if (!targetRow) return;
+  const targetId = targetRow.dataset.id;
+
+  if (draggedId === targetId) return;
+
+  if (type === "category") {
+    reorderCategories(draggedId, targetId);
+  } else if (type === "item") {
+    reorderItems(draggedId, targetId);
+  }
+}
+
+function reorderCategories(draggedId, targetId) {
+  const draggedIndex = categories.findIndex(cat => cat.id === draggedId);
+  const targetIndex = categories.findIndex(cat => cat.id === targetId);
+  if (draggedIndex === -1 || targetIndex === -1) return;
+
+  const [dragged] = categories.splice(draggedIndex, 1);
+  categories.splice(targetIndex, 0, dragged);
+
+  renumberSortOrder(categories);
+  saveData(STORAGE_KEYS.categories, categories);
+  renderCategoriesTab();
+}
+
+function reorderItems(draggedId, targetId) {
+  const draggedIndex = items.findIndex(item => item.id === draggedId);
+  const targetIndex = items.findIndex(item => item.id === targetId);
+  if (draggedIndex === -1 || targetIndex === -1) return;
+
+  const [dragged] = items.splice(draggedIndex, 1);
+  items.splice(targetIndex, 0, dragged);
+
+  renumberSortOrder(items);
+  saveItems();
+  renderItemsTab();
+}
+
+function renumberSortOrder(list) {
+  list.forEach((item, index) => {
+    item.sortOrder = (index + 1) * 10;
+  });
+}
+
 function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2);
 }
@@ -489,7 +547,6 @@ function openAddCategoryModal() {
   form.dataset.mode = "add";
   delete form.dataset.editId;
   document.getElementById("cat-name").value = "";
-  document.getElementById("cat-sort").value = getNextSortOrder(categories);
   openModal("cat-modal");
   document.getElementById("cat-name").focus();
 }
@@ -503,7 +560,6 @@ function openEditCategoryModal(id) {
   form.dataset.mode = "edit";
   form.dataset.editId = id;
   document.getElementById("cat-name").value = category.name;
-  document.getElementById("cat-sort").value = category.sortOrder;
   openModal("cat-modal");
   document.getElementById("cat-name").focus();
 }
@@ -514,7 +570,6 @@ function openAddItemModal() {
   form.dataset.mode = "add";
   delete form.dataset.editId;
   document.getElementById("item-name").value = "";
-  document.getElementById("item-sort").value = getNextSortOrder(items);
   populateCategorySelect("item-category", null);
   openModal("item-modal");
   document.getElementById("item-name").focus();
@@ -529,7 +584,6 @@ function openEditItemModal(id) {
   form.dataset.mode = "edit";
   form.dataset.editId = id;
   document.getElementById("item-name").value = item.name;
-  document.getElementById("item-sort").value = item.sortOrder;
   populateCategorySelect("item-category", item.categoryId);
   openModal("item-modal");
   document.getElementById("item-name").focus();
@@ -718,11 +772,11 @@ function renderCategoriesTab() {
   sortedCategories.forEach(category => {
     const usageCount = items.filter(item => item.categoryId === category.id).length;
     html += `
-      <div class="data-row" data-id="${category.id}">
+      <div class="data-row" data-id="${category.id}" ondragover="handleDragOver(event)" ondrop="handleDrop(event, 'category')">
+        <div class="data-row__drag-handle" title="ドラッグして並び替え" draggable="true" ondragstart="handleDragStart(event, '${category.id}')">⋮⋮</div>
         <label class="row-select" aria-label="${escapeHtml(category.name)}を選択">
           <input type="checkbox" ${selectedCategoryIds.has(category.id) ? "checked" : ""} onchange="handleCategorySelectionChange('${category.id}', this.checked)" />
         </label>
-        <span class="data-row__sort">${category.sortOrder}</span>
         <div class="data-row__main">
           <span class="data-row__name">${escapeHtml(category.name)}</span>
           <span class="data-row__sub">${usageCount}件の商品で使用中</span>
@@ -781,13 +835,12 @@ function renderItemsTab() {
     const categoryName = item.categoryId && categoryMap[item.categoryId] ? categoryMap[item.categoryId].name : MESSAGES.noCategory;
 
     html += `
-      <div class="data-row" data-id="${item.id}">
+      <div class="data-row" data-id="${item.id}" ondragover="handleDragOver(event)" ondrop="handleDrop(event, 'item')">
         ${itemDeleteMode ? `
           <label class="row-select" aria-label="${escapeHtml(item.name)}を選択">
             <input type="checkbox" ${selectedItemIds.has(item.id) ? "checked" : ""} onchange="handleItemSelectionChange('${item.id}', this.checked)" />
           </label>
-        ` : ""}
-        <span class="data-row__sort">${item.sortOrder}</span>
+        ` : `<div class="data-row__drag-handle" title="ドラッグして並び替え" draggable="true" ondragstart="handleDragStart(event, '${item.id}')">⋮⋮</div>`}
         <div class="data-row__main">
           <span class="data-row__name">${escapeHtml(item.name)}</span>
           <span class="data-row__sub">${escapeHtml(categoryName)}</span>
@@ -861,23 +914,19 @@ function parseBulkItems(raw) {
     if (!trimmed) return;
 
     const parts = trimmed.split(",").map(part => part.trim());
-    if (parts.length !== 3) {
+    if (parts.length !== 2) {
       skipped.push(`行${index + 1}: 入力形式が正しくありません`);
       return;
     }
 
-    const [name, categoryName, sortRaw] = parts;
+    const [name, categoryName] = parts;
     if (!name) {
       skipped.push(`行${index + 1}: 商品名が空です`);
       return;
     }
-    if (!isValidSortOrder(sortRaw)) {
-      skipped.push(`行${index + 1}: ソート順は数値で入力してください`);
-      return;
-    }
 
     const matchedCategory = categoryByName[normalizeName(categoryName)] || null;
-    valid.push({ name, categoryId: matchedCategory ? matchedCategory.id : null, sortOrder: Number(sortRaw) });
+    valid.push({ name, categoryId: matchedCategory ? matchedCategory.id : null });
   });
 
   return { valid, skipped };
@@ -894,19 +943,15 @@ function parseBulkCategories(raw) {
     if (!trimmed) return;
 
     const parts = trimmed.split(",").map(part => part.trim());
-    if (parts.length !== 2) {
+    if (parts.length !== 1) {
       skipped.push(`行${index + 1}: 入力形式が正しくありません`);
       return;
     }
 
-    const [name, sortRaw] = parts;
+    const [name] = parts;
     const normalizedName = normalizeName(name);
     if (!normalizedName) {
       skipped.push(`行${index + 1}: カテゴリ名が空です`);
-      return;
-    }
-    if (!isValidSortOrder(sortRaw)) {
-      skipped.push(`行${index + 1}: ソート順は数値で入力してください`);
       return;
     }
     if (existingNames.has(normalizedName) || pendingNames.has(normalizedName)) {
@@ -915,7 +960,7 @@ function parseBulkCategories(raw) {
     }
 
     pendingNames.add(normalizedName);
-    toCreate.push({ name: normalizedName, sortOrder: Number(sortRaw) });
+    toCreate.push({ name: normalizedName });
   });
 
   return { toCreate, skipped };
@@ -944,7 +989,11 @@ function handleBulkAdd() {
     return;
   }
 
-  valid.forEach(entry => addItem(entry.name, entry.categoryId, entry.sortOrder));
+  let nextSortOrder = getNextSortOrder(items);
+  valid.forEach(entry => {
+    addItem(entry.name, entry.categoryId, nextSortOrder);
+    nextSortOrder += 10;
+  });
   closeModal("bulk-modal");
   renderAll();
   showToast(
@@ -966,7 +1015,11 @@ function handleBulkAddCategories() {
     return;
   }
 
-  toCreate.forEach(entry => addCategory(entry.name, entry.sortOrder));
+  let nextSortOrder = getNextSortOrder(categories);
+  toCreate.forEach(entry => {
+    addCategory(entry.name, nextSortOrder);
+    nextSortOrder += 10;
+  });
   closeCategoryBulkModal();
   document.getElementById("category-bulk-text").value = "";
   renderAll();
@@ -1084,24 +1137,22 @@ function setupForms() {
     event.preventDefault();
     const form = event.target;
     const name = document.getElementById("cat-name").value.trim();
-    const sortOrder = document.getElementById("cat-sort").value.trim();
 
     if (!name) {
       showToast("カテゴリ名を入力してください。", "error");
       return;
     }
-    if (!isValidSortOrder(sortOrder)) {
-      showToast("ソート順を正しく入力してください。", "error");
-      return;
-    }
 
     if (form.dataset.mode === "add") {
+      const sortOrder = getNextSortOrder(categories);
       if (!addCategory(name, sortOrder)) {
         showToast("同名カテゴリは登録できません。", "error");
         return;
       }
       showToast("カテゴリを追加しました。", "success");
     } else {
+      const category = categories.find(entry => entry.id === form.dataset.editId);
+      const sortOrder = category ? category.sortOrder : getNextSortOrder(categories);
       const result = updateCategory(form.dataset.editId, name, sortOrder);
       if (!result.ok) {
         showToast(result.reason === "duplicate" ? "同名カテゴリは登録できません。" : "カテゴリを更新できませんでした。", "error");
@@ -1119,24 +1170,22 @@ function setupForms() {
     const form = event.target;
     const name = document.getElementById("item-name").value.trim();
     const categoryId = document.getElementById("item-category").value;
-    const sortOrder = document.getElementById("item-sort").value.trim();
 
     if (!name) {
       showToast("商品名を入力してください。", "error");
       return;
     }
-    if (!isValidSortOrder(sortOrder)) {
-      showToast("ソート順を正しく入力してください。", "error");
-      return;
-    }
 
     if (form.dataset.mode === "add") {
+      const sortOrder = getNextSortOrder(items);
       if (!addItem(name, categoryId, sortOrder)) {
         showToast("商品を追加できませんでした。", "error");
         return;
       }
       showToast("商品を追加しました。", "success");
     } else {
+      const item = items.find(entry => entry.id === form.dataset.editId);
+      const sortOrder = item ? item.sortOrder : getNextSortOrder(items);
       if (!updateItem(form.dataset.editId, name, categoryId, sortOrder)) {
         showToast("商品を更新できませんでした。", "error");
         return;

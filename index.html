@@ -146,10 +146,6 @@
           <label for="cat-name">カテゴリ名</label>
           <input id="cat-name" type="text" placeholder="例: 野菜" maxlength="50" required />
         </div>
-        <div class="form-group">
-          <label for="cat-sort">ソート順</label>
-          <input id="cat-sort" type="number" min="0" step="1" placeholder="10" required />
-        </div>
         <div class="modal__actions">
           <button type="button" class="btn btn--ghost" onclick="closeModal('cat-modal')">キャンセル</button>
           <button id="cat-submit-btn" type="submit" class="btn btn--primary">保存</button>
@@ -171,10 +167,6 @@
           <select id="item-category">
             <option value="">-- カテゴリなし --</option>
           </select>
-        </div>
-        <div class="form-group">
-          <label for="item-sort">ソート順</label>
-          <input id="item-sort" type="number" min="0" step="1" placeholder="10" required />
         </div>
         <div class="modal__actions">
           <button type="button" class="btn btn--ghost" onclick="closeModal('item-modal')">キャンセル</button>
@@ -198,10 +190,10 @@
     <div class="modal__box modal__box--lg">
       <h2 id="bulk-modal-title" class="modal__title">商品を一括追加</h2>
       <p class="modal__desc">1行ごとに1商品を入力してください。</p>
-      <p class="modal__format"><code>商品名,カテゴリ名,ソート順</code></p>
+      <p class="modal__format"><code>商品名,カテゴリ名</code></p>
       <div class="form-group">
         <label for="bulk-text">商品リスト</label>
-        <textarea id="bulk-text" class="bulk-textarea" rows="10" placeholder="牛乳,乳製品,10&#10;卵,冷蔵,20&#10;トイレットペーパー,日用品,30"></textarea>
+        <textarea id="bulk-text" class="bulk-textarea" rows="10" placeholder="牛乳,乳製品&#10;卵,冷蔵&#10;トイレットペーパー,日用品"></textarea>
       </div>
       <div class="modal__actions">
         <button type="button" class="btn btn--ghost" onclick="closeModal('bulk-modal')">キャンセル</button>
@@ -214,10 +206,10 @@
     <div class="modal__box modal__box--lg">
       <h2 id="category-bulk-modal-title" class="modal__title">カテゴリを一括追加</h2>
       <p class="modal__desc">1行ごとに1カテゴリを入力してください。</p>
-      <p class="modal__format"><code>カテゴリ名,ソート順</code></p>
+      <p class="modal__format"><code>カテゴリ名</code></p>
       <div class="form-group">
         <label for="category-bulk-text">カテゴリリスト</label>
-        <textarea id="category-bulk-text" class="bulk-textarea" rows="8" placeholder="野菜,10&#10;肉・魚,20&#10;日用品,30"></textarea>
+        <textarea id="category-bulk-text" class="bulk-textarea" rows="8" placeholder="野菜&#10;肉・魚&#10;日用品"></textarea>
       </div>
       <div class="modal__actions">
         <button type="button" class="btn btn--ghost" onclick="closeCategoryBulkModal()">キャンセル</button>
