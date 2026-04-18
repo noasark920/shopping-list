@@ -75,6 +75,24 @@
           >
             カテゴリ管理
           </button>
+          <button
+            id="menu-export"
+            class="app-menu__item"
+            type="button"
+            role="menuitem"
+            onclick="handleExportBackup()"
+          >
+            バックアップをエクスポート
+          </button>
+          <button
+            id="menu-import"
+            class="app-menu__item"
+            type="button"
+            role="menuitem"
+            onclick="triggerImportBackup()"
+          >
+            バックアップをインポート
+          </button>
         </div>
       </div>
     </header>
@@ -209,6 +227,7 @@
   </div>
 
   <div id="toast-container" aria-live="polite"></div>
+  <input id="import-file-input" type="file" accept="application/json" style="display:none" onchange="handleImportFileSelected(event)" />
 
   <script src="script.js"></script>
   

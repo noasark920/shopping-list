@@ -1,7 +1,10 @@
 const STORAGE_KEYS = {
   categories: "shoppingList_categories",
   items: "shoppingList_items",
+  settings: "shoppingList_settings",
 };
+
+const BACKUP_VERSION = "1.1.0";
 
 const MESSAGES = {
   noCategory: "カテゴリなし",
@@ -9,6 +12,7 @@ const MESSAGES = {
 
 let categories = loadData(STORAGE_KEYS.categories);
 let items = normalizeItems(loadData(STORAGE_KEYS.items));
+let settings = loadSettings();
 let activeTab = "list";
 let appMenuOpen = false;
 let shoppingMode = "shopping";
@@ -18,6 +22,7 @@ let selectedCategoryIds = new Set();
 let selectedItemIds = new Set();
 
 saveData(STORAGE_KEYS.items, items);
+saveAppSettings();
 MESSAGES.noCategory = "カテゴリなし";
 
 function loadData(key) {
@@ -33,8 +38,152 @@ function saveData(key, data) {
   localStorage.setItem(key, JSON.stringify(data));
 }
 
+function loadSettings() {
+  const raw = localStorage.getItem(STORAGE_KEYS.settings);
+  if (!raw) return {};
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveAppSettings() {
+  if (Object.keys(settings).length > 0) {
+    saveData(STORAGE_KEYS.settings, settings);
+  } else {
+    localStorage.removeItem(STORAGE_KEYS.settings);
+  }
+}
+
 function saveItems() {
   saveData(STORAGE_KEYS.items, items);
+}
+
+function buildBackupData() {
+  return {
+    version: BACKUP_VERSION,
+    exportedAt: new Date().toISOString(),
+    categories,
+    items,
+    settings: Object.keys(settings).length > 0 ? settings : {},
+  };
+}
+
+function downloadJson(filename, data) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(link.href);
+}
+
+function handleExportBackup() {
+  appMenuOpen = false;
+  renderTabs();
+  const filename = `shopping-list-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  downloadJson(filename, buildBackupData());
+  showToast("バックアップをエクスポートしました。", "success");
+}
+
+function triggerImportBackup() {
+  appMenuOpen = false;
+  renderTabs();
+  const input = document.getElementById("import-file-input");
+  if (!input) return;
+  input.value = "";
+  input.click();
+}
+
+function handleImportFileSelected(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    let parsed;
+    try {
+      parsed = JSON.parse(reader.result);
+    } catch {
+      showToast("バックアップファイルが正しいJSON形式ではありません。", "error");
+      return;
+    }
+
+    const validationError = validateBackupData(parsed);
+    if (validationError) {
+      showToast(validationError, "error");
+      return;
+    }
+
+    showConfirm("現在のデータを上書きします。よろしいですか？", () => applyBackupData(parsed), "上書きする");
+  };
+  reader.readAsText(file, "UTF-8");
+}
+
+function validateBackupData(data) {
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    return "バックアップデータが不正です。";
+  }
+  if (typeof data.version !== "string" || !data.version.trim()) {
+    return "バックアップのバージョン情報が見つかりません。";
+  }
+  if (typeof data.exportedAt !== "string" || Number.isNaN(Date.parse(data.exportedAt))) {
+    return "バックアップの日時情報が不正です。";
+  }
+  if (!Array.isArray(data.categories)) {
+    return "バックアップにカテゴリデータが含まれていません。";
+  }
+  if (!Array.isArray(data.items)) {
+    return "バックアップに商品データが含まれていません。";
+  }
+  if (data.settings !== undefined && (typeof data.settings !== "object" || Array.isArray(data.settings))) {
+    return "バックアップの設定情報が不正です。";
+  }
+
+  const invalidCategory = data.categories.some(category => {
+    return !category || typeof category !== "object" || !category.id || typeof category.name !== "string" || category.name.trim() === "" || !isValidSortOrder(category.sortOrder);
+  });
+  if (invalidCategory) {
+    return "バックアップのカテゴリデータに不正な項目があります。";
+  }
+
+  const invalidItem = data.items.some(item => {
+    return !item || typeof item !== "object" || typeof item.name !== "string" || item.name.trim() === "";
+  });
+  if (invalidItem) {
+    return "バックアップの商品データに不正な項目があります。";
+  }
+
+  return null;
+}
+
+function applyBackupData(backup) {
+  categories = backup.categories.map(category => ({
+    id: category.id || generateId(),
+    name: normalizeName(category.name),
+    sortOrder: Number(category.sortOrder) || 0,
+  }));
+
+  items = normalizeItems(backup.items);
+
+  settings = backup.settings && typeof backup.settings === "object" && !Array.isArray(backup.settings)
+    ? backup.settings
+    : {};
+
+  saveData(STORAGE_KEYS.categories, categories);
+  saveItems();
+  saveAppSettings();
+
+  selectedCategoryIds.clear();
+  selectedItemIds.clear();
+  shoppingMode = "shopping";
+
+  renderAll();
+  showToast("バックアップをインポートしました。", "success");
 }
 
 function generateId() {
