@@ -2,9 +2,10 @@ const STORAGE_KEYS = {
   categories: "shoppingList_categories",
   items: "shoppingList_items",
   settings: "shoppingList_settings",
+  freeMemos: "shoppingList_freeMemos",
 };
 
-const BACKUP_VERSION = "1.1.0";
+const BACKUP_VERSION = "1.3.0";
 
 const MESSAGES = {
   noCategory: "カテゴリなし",
@@ -13,6 +14,7 @@ const MESSAGES = {
 let categories = loadData(STORAGE_KEYS.categories);
 let items = normalizeItems(loadData(STORAGE_KEYS.items));
 let settings = loadSettings();
+let freeMemos = loadFreeMemos();
 let activeTab = "list";
 let appMenuOpen = false;
 let shoppingMode = "shopping";
@@ -23,6 +25,7 @@ let selectedItemIds = new Set();
 
 saveData(STORAGE_KEYS.items, items);
 saveAppSettings();
+saveFreeMemos();
 MESSAGES.noCategory = "カテゴリなし";
 
 function loadData(key) {
@@ -57,6 +60,31 @@ function saveAppSettings() {
   }
 }
 
+function loadFreeMemos() {
+  const raw = localStorage.getItem(STORAGE_KEYS.freeMemos);
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.map(normalizeFreeMemo) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveFreeMemos() {
+  saveData(STORAGE_KEYS.freeMemos, freeMemos);
+}
+
+function normalizeFreeMemo(memo) {
+  return {
+    id: memo.id || generateId(),
+    text: String(memo.text ?? "").trim(),
+    selectedForShopping: Boolean(memo.selectedForShopping),
+    purchased: Boolean(memo.purchased),
+    createdAt: memo.createdAt || new Date().toISOString(),
+  };
+}
+
 function saveItems() {
   saveData(STORAGE_KEYS.items, items);
 }
@@ -68,6 +96,7 @@ function buildBackupData() {
     categories,
     items,
     settings: Object.keys(settings).length > 0 ? settings : {},
+    freeMemos,
   };
 }
 
@@ -143,6 +172,9 @@ function validateBackupData(data) {
   if (data.settings !== undefined && (typeof data.settings !== "object" || Array.isArray(data.settings))) {
     return "バックアップの設定情報が不正です。";
   }
+  if (data.freeMemos !== undefined && !Array.isArray(data.freeMemos)) {
+    return "バックアップのフリーメモ情報が不正です。";
+  }
 
   const invalidCategory = data.categories.some(category => {
     return !category || typeof category !== "object" || !category.id || typeof category.name !== "string" || category.name.trim() === "" || !isValidSortOrder(category.sortOrder);
@@ -156,6 +188,15 @@ function validateBackupData(data) {
   });
   if (invalidItem) {
     return "バックアップの商品データに不正な項目があります。";
+  }
+
+  if (data.freeMemos) {
+    const invalidMemo = data.freeMemos.some(memo => {
+      return !memo || typeof memo !== "object" || typeof memo.text !== "string" || memo.text.trim() === "";
+    });
+    if (invalidMemo) {
+      return "バックアップのフリーメモデータに不正な項目があります。";
+    }
   }
 
   return null;
@@ -174,9 +215,12 @@ function applyBackupData(backup) {
     ? backup.settings
     : {};
 
+  freeMemos = backup.freeMemos ? backup.freeMemos.map(normalizeFreeMemo) : [];
+
   saveData(STORAGE_KEYS.categories, categories);
   saveItems();
   saveAppSettings();
+  saveFreeMemos();
 
   selectedCategoryIds.clear();
   selectedItemIds.clear();
@@ -242,6 +286,53 @@ function renumberSortOrder(list) {
   list.forEach((item, index) => {
     item.sortOrder = (index + 1) * 10;
   });
+}
+
+function addFreeMemo(text) {
+  const trimmed = text.trim();
+  if (!trimmed || trimmed.length > 100) return false;
+
+  freeMemos.push({
+    id: generateId(),
+    text: trimmed,
+    selectedForShopping: false,
+    purchased: false,
+    createdAt: new Date().toISOString(),
+  });
+  saveFreeMemos();
+  return true;
+}
+
+function updateFreeMemo(id, text) {
+  const memo = freeMemos.find(m => m.id === id);
+  if (!memo) return false;
+  const trimmed = text.trim();
+  if (!trimmed || trimmed.length > 100) return false;
+  memo.text = trimmed;
+  saveFreeMemos();
+  return true;
+}
+
+function deleteFreeMemo(id) {
+  freeMemos = freeMemos.filter(m => m.id !== id);
+  saveFreeMemos();
+}
+
+function toggleFreeMemoSelection(id) {
+  const memo = freeMemos.find(m => m.id === id);
+  if (!memo) return;
+  memo.selectedForShopping = !memo.selectedForShopping;
+  if (!memo.selectedForShopping) {
+    memo.purchased = false;
+  }
+  saveFreeMemos();
+}
+
+function toggleFreeMemoPurchased(id) {
+  const memo = freeMemos.find(m => m.id === id);
+  if (!memo || !memo.selectedForShopping) return;
+  memo.purchased = !memo.purchased;
+  saveFreeMemos();
 }
 
 function generateId() {
@@ -589,159 +680,6 @@ function openEditItemModal(id) {
   document.getElementById("item-name").focus();
 }
 
-function renderTabs() {
-  document.querySelectorAll(".app-menu__item").forEach(button => {
-    button.classList.toggle("app-menu__item--active", button.dataset.tab === activeTab);
-  });
-  document.querySelectorAll(".tab-panel").forEach(panel => {
-    panel.classList.toggle("tab-panel--active", panel.id === `panel-${activeTab}`);
-  });
-  const menuToggleButton = document.getElementById("menu-toggle-btn");
-  const menuDropdown = document.getElementById("app-menu-dropdown");
-  if (menuToggleButton) {
-    menuToggleButton.setAttribute("aria-expanded", appMenuOpen ? "true" : "false");
-  }
-  if (menuDropdown) {
-    menuDropdown.classList.toggle("app-menu__dropdown--open", appMenuOpen);
-  }
-}
-
-function renderShoppingModePanel(remainingCount) {
-  const descriptions = {
-    select: "今回買う商品を選ぶモードです。ここでは対象商品のみ切り替えます。",
-    shopping: "選択済みの商品だけを表示し、買ったものにチェックを付けます。",
-  };
-
-  return `
-    <div class="mode-panel">
-      <div class="mode-switch" role="tablist" aria-label="買い物リストモード切替">
-        <button
-          type="button"
-          class="btn btn--ghost mode-switch__btn ${shoppingMode === "select" ? "mode-switch__btn--active" : ""}"
-          onclick="handleShoppingModeChange('select')"
-        >
-          対象選択モード
-        </button>
-        <button
-          type="button"
-          class="btn btn--ghost mode-switch__btn ${shoppingMode === "shopping" ? "mode-switch__btn--active" : ""}"
-          onclick="handleShoppingModeChange('shopping')"
-        >
-          買い物モード
-        </button>
-      </div>
-      <div class="mode-panel__desc">${escapeHtml(descriptions[shoppingMode])}</div>
-      <div class="list-summary">選択中: ${selectedCount}件</div>
-    </div>
-  `;
-}
-
-function renderShoppingModePanelCompact(selectedCount) {
-  const descriptions = {
-    select: "今回買う商品を選ぶモード",
-    shopping: "選択した商品の購入状況をチェックするモード",
-  };
-
-  return `
-    <div class="mode-panel mode-panel--list">
-      <div class="mode-panel__top">
-        <div class="mode-switch mode-switch--list" role="tablist" aria-label="買い物リストモード切替">
-          <button
-            type="button"
-            class="btn btn--ghost mode-switch__btn mode-switch__btn--compact ${shoppingMode === "select" ? "mode-switch__btn--active" : ""}"
-            onclick="handleShoppingModeChange('select')"
-          >
-            対象選択モード（${selectedCount}）
-          </button>
-          <button
-            type="button"
-            class="btn btn--ghost mode-switch__btn mode-switch__btn--compact ${shoppingMode === "shopping" ? "mode-switch__btn--active" : ""}"
-            onclick="handleShoppingModeChange('shopping')"
-          >
-            買い物モード
-          </button>
-        </div>
-        <div class="mode-help">
-          <button
-            type="button"
-            class="mode-help__trigger"
-            aria-label="モードの説明を表示"
-            aria-expanded="${shoppingModeHelpOpen ? "true" : "false"}"
-            onclick="toggleShoppingModeHelp(event)"
-          >
-            ?
-          </button>
-          <div class="mode-help__tooltip ${shoppingModeHelpOpen ? "mode-help__tooltip--open" : ""}" role="tooltip">
-            <p class="mode-help__item"><strong>対象選択モード</strong><span>${escapeHtml(descriptions.select)}</span></p>
-            <p class="mode-help__item"><strong>買い物モード</strong><span>${escapeHtml(descriptions.shopping)}</span></p>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-function renderListTab() {
-  const container = document.getElementById("list-content");
-  const sortedItems = getSortedItems();
-  const categoryMap = getCategoryMap();
-  const visibleItems = shoppingMode === "shopping"
-    ? sortedItems.filter(item => item.selectedForShopping)
-    : sortedItems;
-  const selectedCount = sortedItems.filter(item => item.selectedForShopping).length;
-
-  if (sortedItems.length === 0) {
-    container.innerHTML = `
-      ${renderShoppingModePanelCompact(0)}
-      <div class="empty-state">
-        <div class="empty-state__icon">🧾</div>
-        <p>商品管理から商品を登録すると、買い物リストで選択できるようになります。</p>
-      </div>
-    `;
-    return;
-  }
-
-  if (shoppingMode === "shopping" && visibleItems.length === 0) {
-    container.innerHTML = `
-      ${renderShoppingModePanelCompact(selectedCount)}
-      <div class="empty-state">
-        <div class="empty-state__icon">🛍️</div>
-        <p>対象選択モードで今回買う商品を選んでください。</p>
-      </div>
-    `;
-    return;
-  }
-
-  let html = `${renderShoppingModePanelCompact(selectedCount)}<div class="list-table list-table--compact">`;
-
-  visibleItems.forEach(item => {
-    const categoryName = item.categoryId && categoryMap[item.categoryId] ? categoryMap[item.categoryId].name : MESSAGES.noCategory;
-    const checked = shoppingMode === "select" ? item.selectedForShopping : item.purchased;
-    const changeHandler = shoppingMode === "select"
-      ? `handleToggleShoppingSelection('${item.id}', this.checked)`
-      : `handleTogglePurchased('${item.id}')`;
-
-    html += `
-      <label class="list-row ${shoppingMode === "shopping" && item.purchased ? "list-row--purchased" : ""}" data-id="${item.id}">
-        <span class="list-row__check">
-          <input
-            type="checkbox"
-            ${checked ? "checked" : ""}
-            onchange="${changeHandler}"
-          />
-        </span>
-        <span class="list-row__main">
-          <span class="list-row__name">${escapeHtml(item.name)}</span>
-          <span class="list-row__sub">${escapeHtml(categoryName)}</span>
-        </span>
-      </label>
-    `;
-  });
-
-  html += "</div>";
-  container.innerHTML = html;
-}
-
 function renderCategoriesTab() {
   const container = document.getElementById("categories-content");
   const sortedCategories = getSortedCategories();
@@ -863,11 +801,6 @@ function renderAll() {
   renderListTab();
   renderCategoriesTab();
   renderItemsTab();
-}
-
-function handleTabClick(tab) {
-  activeTab = tab;
-  renderAll();
 }
 
 function handleShoppingModeChange(mode) {
@@ -1126,10 +1059,55 @@ function handleResetShoppingSelection() {
       item.selectedForShopping = false;
       item.purchased = false;
     });
+    freeMemos.forEach(memo => {
+      memo.selectedForShopping = false;
+      memo.purchased = false;
+    });
     saveItems();
+    saveFreeMemos();
     renderListTab();
     showToast("対象選択をすべて解除しました。", "success");
   }, "解除する");
+}
+
+function handleAddFreeMemo() {
+  const input = document.getElementById("free-memo-input");
+  if (!input) return;
+  const text = input.value.trim();
+  if (!text) {
+    showToast("フリーメモを入力してください。", "error");
+    return;
+  }
+  if (addFreeMemo(text)) {
+    input.value = "";
+    renderListTab();
+  } else {
+    showToast("フリーメモの追加に失敗しました。", "error");
+  }
+}
+
+function handleUpdateFreeMemo(id, text) {
+  if (!updateFreeMemo(id, text)) {
+    showToast("フリーメモの更新に失敗しました。", "error");
+  }
+}
+
+function handleDeleteFreeMemo(id) {
+  showConfirm("このフリーメモを削除しますか？", () => {
+    deleteFreeMemo(id);
+    renderListTab();
+    showToast("フリーメモを削除しました。", "success");
+  });
+}
+
+function handleToggleFreeMemoSelection(id) {
+  toggleFreeMemoSelection(id);
+  renderListTab();
+}
+
+function handleToggleFreeMemoPurchased(id) {
+  toggleFreeMemoPurchased(id);
+  renderListTab();
 }
 
 function setupForms() {
@@ -1297,9 +1275,12 @@ function renderListTab() {
   const visibleItems = shoppingMode === "shopping"
     ? sortedItems.filter(item => item.selectedForShopping)
     : sortedItems;
-  const remainingCount = getRemainingShoppingCount(sortedItems);
+  const remainingCount = getRemainingShoppingCount(sortedItems) + freeMemos.filter(memo => memo.selectedForShopping && !memo.purchased).length;
+  const visibleMemos = shoppingMode === "shopping"
+    ? freeMemos.filter(memo => memo.selectedForShopping)
+    : freeMemos;
 
-  if (sortedItems.length === 0) {
+  if (sortedItems.length === 0 && freeMemos.length === 0) {
     container.innerHTML = `
       ${renderShoppingModePanelCompact(0)}
       <div class="empty-state">
@@ -1310,7 +1291,7 @@ function renderListTab() {
     return;
   }
 
-  if (shoppingMode === "shopping" && visibleItems.length === 0) {
+  if (shoppingMode === "shopping" && visibleItems.length === 0 && visibleMemos.length === 0) {
     container.innerHTML = `
       ${renderShoppingModePanelCompact(remainingCount)}
       <div class="empty-state">
@@ -1321,33 +1302,84 @@ function renderListTab() {
     return;
   }
 
-  let html = `${renderShoppingModePanelCompact(remainingCount)}<div class="list-table list-table--compact">`;
+  let html = renderShoppingModePanelCompact(remainingCount);
 
-  visibleItems.forEach(item => {
-    const categoryName = item.categoryId && categoryMap[item.categoryId] ? categoryMap[item.categoryId].name : MESSAGES.noCategory;
-    const checked = shoppingMode === "select" ? item.selectedForShopping : item.purchased;
-    const changeHandler = shoppingMode === "select"
-      ? `handleToggleShoppingSelection('${item.id}', this.checked)`
-      : `handleTogglePurchased('${item.id}')`;
-
+  // Free Memo section
+  if (shoppingMode === "select") {
     html += `
-      <label class="list-row ${shoppingMode === "shopping" && item.purchased ? "list-row--purchased" : ""}" data-id="${item.id}">
-        <span class="list-row__check">
-          <input
-            type="checkbox"
-            ${checked ? "checked" : ""}
-            onchange="${changeHandler}"
-          />
-        </span>
-        <span class="list-row__main">
-          <span class="list-row__name">${escapeHtml(item.name)}</span>
-          <span class="list-row__sub">${escapeHtml(categoryName)}</span>
-        </span>
-      </label>
+      <div class="free-memo-input">
+        <input id="free-memo-input" type="text" placeholder="フリーメモを入力" maxlength="100" onkeydown="if(event.key==='Enter') handleAddFreeMemo()" />
+        <button class="btn btn--primary btn--sm" onclick="handleAddFreeMemo()">追加</button>
+      </div>
     `;
-  });
+  }
 
-  html += "</div>";
+  if (visibleMemos.length > 0) {
+    html += '<div class="free-memo-list">';
+    visibleMemos.forEach(memo => {
+      const checked = shoppingMode === "select" ? memo.selectedForShopping : memo.purchased;
+      const changeHandler = shoppingMode === "select"
+        ? `handleToggleFreeMemoSelection('${memo.id}')`
+        : `handleToggleFreeMemoPurchased('${memo.id}')`;
+
+      html += `
+        <div class="free-memo-row ${shoppingMode === "shopping" && memo.purchased ? "free-memo-row--purchased" : ""}">
+          <label class="free-memo-row__check">
+            <input
+              type="checkbox"
+              ${checked ? "checked" : ""}
+              onchange="${changeHandler}"
+            />
+          </label>
+          ${shoppingMode === "select" ? `
+            <input
+              class="free-memo-row__text"
+              type="text"
+              value="${escapeHtml(memo.text)}"
+              maxlength="100"
+              oninput="handleUpdateFreeMemo('${memo.id}', this.value)"
+            />
+          ` : `
+            <span class="free-memo-row__text">${escapeHtml(memo.text)}</span>
+          `}
+          ${shoppingMode === "select" ? `<button class="btn btn--icon btn--delete" onclick="handleDeleteFreeMemo('${memo.id}')">🗑️</button>` : ""}
+        </div>
+      `;
+    });
+    html += '</div>';
+  }
+
+  // Product section
+  if (visibleItems.length > 0) {
+    html += '<div class="list-table list-table--compact">';
+
+    visibleItems.forEach(item => {
+      const categoryName = item.categoryId && categoryMap[item.categoryId] ? categoryMap[item.categoryId].name : MESSAGES.noCategory;
+      const checked = shoppingMode === "select" ? item.selectedForShopping : item.purchased;
+      const changeHandler = shoppingMode === "select"
+        ? `handleToggleShoppingSelection('${item.id}', this.checked)`
+        : `handleTogglePurchased('${item.id}')`;
+
+      html += `
+        <label class="list-row ${shoppingMode === "shopping" && item.purchased ? "list-row--purchased" : ""}" data-id="${item.id}">
+          <span class="list-row__check">
+            <input
+              type="checkbox"
+              ${checked ? "checked" : ""}
+              onchange="${changeHandler}"
+            />
+          </span>
+          <span class="list-row__main">
+            <span class="list-row__name">${escapeHtml(item.name)}</span>
+            <span class="list-row__sub">${escapeHtml(categoryName)}</span>
+          </span>
+        </label>
+      `;
+    });
+
+    html += "</div>";
+  }
+
   container.innerHTML = html;
 }
 
