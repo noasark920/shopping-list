@@ -929,7 +929,7 @@ span.free-memo-row__text {
 }
 
 /* =========================
-   Shopping Mode Orange Theme
+   Shopping Mode Yellow Theme
 ========================= */
 
 body.shopping-mode {
@@ -938,13 +938,13 @@ body.shopping-mode {
   --accent-border: rgba(250,204,21,.35);
 }
 
-body.shopping-mode .mode-switch__btn--active,
-body.shopping-mode .btn--primary{
+body.shopping-mode #panel-list .mode-switch__btn--active{
   background:#facc15;
   border-color:#facc15;
   color:#111;
 }
 
-body.shopping-mode input[type="checkbox"]{
+body.shopping-mode #panel-list .list-row__check input[type="checkbox"],
+body.shopping-mode #panel-list .free-memo-row__check input[type="checkbox"]{
   accent-color:#ffff44;
 }
