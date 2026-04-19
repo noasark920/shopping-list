@@ -867,3 +867,63 @@ span.free-memo-row__text {
   .modal__box { padding: 20px; }
   .toast { white-space: normal; text-align: center; }
 }
+
+/* =========================
+   Free Memo Mobile Fix
+========================= */
+
+.free-memo-input .btn,
+.free-memo-input button {
+  min-width: 72px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.free-memo-input input {
+  min-width: 0;
+}
+
+/* フリーメモ行 */
+.free-memo-row {
+  align-items: center;
+}
+
+/* テキスト領域が縮められるようにする */
+.free-memo-row__text {
+  min-width: 0;
+}
+
+/* 削除ボタン固定 */
+.free-memo-row .btn,
+.free-memo-row button {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+}
+
+/* スマホ最適化 */
+@media (max-width: 480px) {
+  .free-memo-input {
+    gap: 6px;
+    padding: 10px;
+  }
+
+  .free-memo-input .btn,
+  .free-memo-input button {
+    min-width: 64px;
+    font-size: 0.95rem;
+  }
+
+  .free-memo-row {
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .free-memo-row .btn,
+  .free-memo-row button {
+    width: 36px;
+    height: 36px;
+    font-size: 1rem;
+  }
+}
