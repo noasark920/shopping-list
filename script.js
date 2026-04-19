@@ -20,6 +20,7 @@ let appMenuOpen = false;
 let shoppingMode = "shopping";
 let shoppingModeHelpOpen = false;
 let itemDeleteMode = false;
+let categoryDeleteMode = false;
 let selectedCategoryIds = new Set();
 let selectedItemIds = new Set();
 
@@ -695,15 +696,28 @@ function renderCategoriesTab() {
   }
 
   const selectedCount = sortedCategories.filter(category => selectedCategoryIds.has(category.id)).length;
-  let html = `
+  const bulkToolbarHtml = categoryDeleteMode ? `
     <div class="bulk-toolbar">
       <div class="bulk-actions">
+        <button type="button" class="btn btn--ghost btn--sm" onclick="handleSelectAllCategories()">
+          すべてチェック
+        </button>
+        <button type="button" class="btn btn--ghost btn--sm" onclick="handleClearAllCategories()" ${selectedCount === 0 ? "disabled" : ""}>
+          すべて解除
+        </button>
         <button type="button" class="btn btn--danger btn--sm" onclick="handleBulkDeleteCategories()" ${selectedCount === 0 ? "disabled" : ""}>
           選択したカテゴリを削除
+        </button>
+        <button type="button" class="btn btn--ghost btn--sm" onclick="handleCancelCategoryDeleteMode()">
+          キャンセル
         </button>
       </div>
       <div class="bulk-toolbar__count">${selectedCount}件選択中</div>
     </div>
+  ` : "";
+
+  let html = `
+    ${bulkToolbarHtml}
     <div class="data-table">
   `;
 
@@ -711,17 +725,18 @@ function renderCategoriesTab() {
     const usageCount = items.filter(item => item.categoryId === category.id).length;
     html += `
       <div class="data-row" data-id="${category.id}" ondragover="handleDragOver(event)" ondrop="handleDrop(event, 'category')">
-        <div class="data-row__drag-handle" title="ドラッグして並び替え" draggable="true" ondragstart="handleDragStart(event, '${category.id}')">⋮⋮</div>
-        <label class="row-select" aria-label="${escapeHtml(category.name)}を選択">
-          <input type="checkbox" ${selectedCategoryIds.has(category.id) ? "checked" : ""} onchange="handleCategorySelectionChange('${category.id}', this.checked)" />
-        </label>
+        ${categoryDeleteMode ? `
+          <label class="row-select" aria-label="${escapeHtml(category.name)}を選択">
+            <input type="checkbox" ${selectedCategoryIds.has(category.id) ? "checked" : ""} onchange="handleCategorySelectionChange('${category.id}', this.checked)" />
+          </label>
+        ` : `<div class="data-row__drag-handle" title="ドラッグして並び替え" draggable="true" ondragstart="handleDragStart(event, '${category.id}')">⋮⋮</div>`}
         <div class="data-row__main">
           <span class="data-row__name">${escapeHtml(category.name)}</span>
           <span class="data-row__sub">${usageCount}件の商品で使用中</span>
         </div>
         <div class="data-row__actions">
-          <button class="btn btn--icon btn--edit" onclick="handleEditCategory('${category.id}')" title="編集">✏️</button>
-          <button class="btn btn--icon btn--delete" onclick="handleDeleteCategory('${category.id}')" title="削除">🗑️</button>
+          <button class="btn btn--icon btn--edit" onclick="handleEditCategory('${category.id}')" title="編集" ${categoryDeleteMode ? "disabled" : ""}>✏️</button>
+          <button class="btn btn--icon btn--delete" onclick="handleDeleteCategory('${category.id}')" title="削除" ${categoryDeleteMode ? "disabled" : ""}>🗑️</button>
         </div>
       </div>
     `;
@@ -739,6 +754,12 @@ function renderItemsToolbar(selectedCount) {
   return `
     <div class="bulk-toolbar">
       <div class="bulk-actions">
+        <button type="button" class="btn btn--ghost btn--sm" onclick="handleSelectAllItems()">
+          すべてチェック
+        </button>
+        <button type="button" class="btn btn--ghost btn--sm" onclick="handleClearAllItems()" ${selectedCount === 0 ? "disabled" : ""}>
+          すべて解除
+        </button>
         <button type="button" class="btn btn--danger btn--sm" onclick="handleBulkDeleteItems()" ${selectedCount === 0 ? "disabled" : ""}>
           選択した商品を削除
         </button>
@@ -837,6 +858,18 @@ function handleCancelItemDeleteMode() {
   itemDeleteMode = false;
   selectedItemIds.clear();
   renderItemsTab();
+}
+
+function handleToggleCategoryDeleteMode() {
+  categoryDeleteMode = true;
+  selectedCategoryIds.clear();
+  renderCategoriesTab();
+}
+
+function handleCancelCategoryDeleteMode() {
+  categoryDeleteMode = false;
+  selectedCategoryIds.clear();
+  renderCategoriesTab();
 }
 
 function parseBulkItems(raw) {
@@ -981,12 +1014,32 @@ function handleCategorySelectionChange(id, checked) {
   renderCategoriesTab();
 }
 
+function handleSelectAllCategories() {
+  selectedCategoryIds = new Set(getSortedCategories().map(category => category.id));
+  renderCategoriesTab();
+}
+
+function handleClearAllCategories() {
+  selectedCategoryIds.clear();
+  renderCategoriesTab();
+}
+
 function handleItemSelectionChange(id, checked) {
   if (checked) {
     selectedItemIds.add(id);
   } else {
     selectedItemIds.delete(id);
   }
+  renderItemsTab();
+}
+
+function handleSelectAllItems() {
+  selectedItemIds = new Set(getSortedItems().map(item => item.id));
+  renderItemsTab();
+}
+
+function handleClearAllItems() {
+  selectedItemIds.clear();
   renderItemsTab();
 }
 
@@ -1011,6 +1064,7 @@ function handleBulkDeleteCategories() {
 
   showConfirm(`選択した${ids.length}件のカテゴリを削除しますか？`, () => {
     const result = deleteCategories(ids);
+    categoryDeleteMode = false;
     renderAll();
 
     if (result.deletedCount > 0) {
