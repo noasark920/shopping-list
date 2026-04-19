@@ -806,6 +806,9 @@ function renderAll() {
 function handleShoppingModeChange(mode) {
   shoppingMode = mode;
   shoppingModeHelpOpen = false;
+
+  document.body.classList.toggle("shopping-mode", mode === "shopping");
+
   renderListTab();
 }
 
@@ -1422,5 +1425,11 @@ document.addEventListener("DOMContentLoaded", () => {
   setupModals();
   setupShoppingModeHelp();
   setupAppMenu();
+
+  document.body.classList.toggle(
+    "shopping-mode",
+    shoppingMode === "shopping"
+  );
+
   renderAll();
 });

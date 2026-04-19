@@ -927,3 +927,24 @@ span.free-memo-row__text {
     font-size: 1rem;
   }
 }
+
+/* =========================
+   Shopping Mode Orange Theme
+========================= */
+
+body.shopping-mode {
+  --accent-color: #facc15;
+  --accent-soft: rgba(250,204,21,.18);
+  --accent-border: rgba(250,204,21,.35);
+}
+
+body.shopping-mode .mode-switch__btn--active,
+body.shopping-mode .btn--primary{
+  background:#facc15;
+  border-color:#facc15;
+  color:#111;
+}
+
+body.shopping-mode input[type="checkbox"]{
+  accent-color:#ffff44;
+}
