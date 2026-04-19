@@ -929,22 +929,62 @@ span.free-memo-row__text {
 }
 
 /* =========================
-   Shopping Mode Yellow Theme
+   Shopping Mode Orange Theme
 ========================= */
 
 body.shopping-mode {
-  --accent-color: #facc15;
-  --accent-soft: rgba(250,204,21,.18);
-  --accent-border: rgba(250,204,21,.35);
+  --accent-color: #f97316;
+  --accent-soft: rgba(249,115,22,.18);
+  --accent-border: rgba(249,115,22,.35);
 }
 
 body.shopping-mode #panel-list .mode-switch__btn--active{
-  background:#facc15;
-  border-color:#facc15;
-  color:#111;
+  background:#f97316;
+  border-color:#f97316;
+  color:#ffffff;
 }
 
-body.shopping-mode #panel-list .list-row__check input[type="checkbox"],
-body.shopping-mode #panel-list .free-memo-row__check input[type="checkbox"]{
-  accent-color:#ffff44;
+/* =========================
+   Unified Invert Checkbox
+========================= */
+
+input[type="checkbox"]{
+  appearance:none;
+  -webkit-appearance:none;
+
+  width:20px;
+  height:20px;
+  margin:0;
+
+  border:2px solid #ffffff;
+  border-radius:4px;
+  background:#ffffff;
+
+  display:inline-grid;
+  place-content:center;
+
+  cursor:pointer;
+  transition:all .15s ease;
+}
+
+input[type="checkbox"]:checked{
+  background:#111111;
+  border-color:#111111;
+}
+
+input[type="checkbox"]:checked::before{
+  content:"✓";
+  color:#ffffff;
+  font-size:14px;
+  font-weight:700;
+  line-height:1;
+}
+
+input[type="checkbox"]:hover{
+  transform:scale(1.03);
+}
+
+input[type="checkbox"]:focus-visible{
+  outline:2px solid rgba(255,255,255,.3);
+  outline-offset:2px;
 }
