@@ -770,7 +770,10 @@ function renderItemsTab() {
   let html = `${renderItemsToolbar(selectedCount)}<div class="data-table">`;
 
   sortedItems.forEach(item => {
-    const categoryName = item.categoryId && categoryMap[item.categoryId] ? categoryMap[item.categoryId].name : MESSAGES.noCategory;
+    const categoryName = item.categoryId && categoryMap[item.categoryId] ? categoryMap[item.categoryId].name : "";
+    const categorySubHtml = categoryName
+      ? `<span class="data-row__sub">${escapeHtml(categoryName)}</span>`
+      : "";
 
     html += `
       <div class="data-row" data-id="${item.id}" ondragover="handleDragOver(event)" ondrop="handleDrop(event, 'item')">
@@ -781,7 +784,7 @@ function renderItemsTab() {
         ` : `<div class="data-row__drag-handle" title="ドラッグして並び替え" draggable="true" ondragstart="handleDragStart(event, '${item.id}')">⋮⋮</div>`}
         <div class="data-row__main">
           <span class="data-row__name">${escapeHtml(item.name)}</span>
-          <span class="data-row__sub">${escapeHtml(categoryName)}</span>
+          ${categorySubHtml}
         </div>
         <div class="data-row__actions">
           <button class="btn btn--icon btn--edit" onclick="handleEditItem('${item.id}')" title="編集" ${itemDeleteMode ? "disabled" : ""}>✏️</button>
@@ -1325,8 +1328,24 @@ function renderListTab() {
         ? `handleToggleFreeMemoSelection('${memo.id}')`
         : `handleToggleFreeMemoPurchased('${memo.id}')`;
 
+      if (shoppingMode === "shopping") {
+        html += `
+          <label class="free-memo-row ${memo.purchased ? "free-memo-row--purchased" : ""}">
+            <span class="free-memo-row__check">
+              <input
+                type="checkbox"
+                ${checked ? "checked" : ""}
+                onchange="${changeHandler}"
+              />
+            </span>
+            <span class="free-memo-row__text">${escapeHtml(memo.text)}</span>
+          </label>
+        `;
+        return;
+      }
+
       html += `
-        <div class="free-memo-row ${shoppingMode === "shopping" && memo.purchased ? "free-memo-row--purchased" : ""}">
+        <div class="free-memo-row">
           <label class="free-memo-row__check">
             <input
               type="checkbox"
@@ -1334,18 +1353,14 @@ function renderListTab() {
               onchange="${changeHandler}"
             />
           </label>
-          ${shoppingMode === "select" ? `
-            <input
-              class="free-memo-row__text"
-              type="text"
-              value="${escapeHtml(memo.text)}"
-              maxlength="100"
-              oninput="handleUpdateFreeMemo('${memo.id}', this.value)"
-            />
-          ` : `
-            <span class="free-memo-row__text">${escapeHtml(memo.text)}</span>
-          `}
-          ${shoppingMode === "select" ? `<button class="btn btn--icon btn--delete" onclick="handleDeleteFreeMemo('${memo.id}')">🗑️</button>` : ""}
+          <input
+            class="free-memo-row__text"
+            type="text"
+            value="${escapeHtml(memo.text)}"
+            maxlength="100"
+            oninput="handleUpdateFreeMemo('${memo.id}', this.value)"
+          />
+          <button class="btn btn--icon btn--delete" onclick="handleDeleteFreeMemo('${memo.id}')">🗑️</button>
         </div>
       `;
     });
@@ -1357,7 +1372,10 @@ function renderListTab() {
     html += '<div class="list-table list-table--compact">';
 
     visibleItems.forEach(item => {
-      const categoryName = item.categoryId && categoryMap[item.categoryId] ? categoryMap[item.categoryId].name : MESSAGES.noCategory;
+      const categoryName = item.categoryId && categoryMap[item.categoryId] ? categoryMap[item.categoryId].name : "";
+      const categorySubHtml = categoryName
+        ? `<span class="list-row__sub">${escapeHtml(categoryName)}</span>`
+        : "";
       const checked = shoppingMode === "select" ? item.selectedForShopping : item.purchased;
       const changeHandler = shoppingMode === "select"
         ? `handleToggleShoppingSelection('${item.id}', this.checked)`
@@ -1374,7 +1392,7 @@ function renderListTab() {
           </span>
           <span class="list-row__main">
             <span class="list-row__name">${escapeHtml(item.name)}</span>
-            <span class="list-row__sub">${escapeHtml(categoryName)}</span>
+            ${categorySubHtml}
           </span>
         </label>
       `;
