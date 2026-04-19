@@ -25,6 +25,9 @@ let selectedCategoryIds = new Set();
 let selectedItemIds = new Set();
 let pendingPurchasedUndo = null;
 let pendingPurchasedUndoTimer = null;
+let missionCompleteShown = false;
+let missionCompleteVisible = false;
+let missionCompleteTimer = null;
 
 saveData(STORAGE_KEYS.items, items);
 saveAppSettings();
@@ -651,6 +654,91 @@ function handleUndoPurchasedToggle() {
   }
 
   renderListTab();
+  if (undo.previousPurchased) {
+    evaluateMissionComplete();
+  } else {
+    resetMissionCompleteEligibility();
+  }
+}
+
+function getShoppingCompletionState() {
+  const selectedItems = items.filter(item => item.selectedForShopping);
+  const selectedMemos = freeMemos.filter(memo => memo.selectedForShopping);
+  const totalSelected = selectedItems.length + selectedMemos.length;
+  const completed =
+    totalSelected > 0 &&
+    selectedItems.every(item => item.purchased) &&
+    selectedMemos.every(memo => memo.purchased);
+
+  return { totalSelected, completed };
+}
+
+function resetMissionCompleteEligibility() {
+  missionCompleteShown = false;
+  if (!getShoppingCompletionState().completed) {
+    hideMissionCompletePopup();
+  }
+}
+
+function evaluateMissionComplete() {
+  if (shoppingMode !== "shopping") return;
+
+  const state = getShoppingCompletionState();
+  if (!state.completed) {
+    missionCompleteShown = false;
+    hideMissionCompletePopup();
+    return;
+  }
+
+  if (!missionCompleteShown) {
+    showMissionCompletePopup();
+  }
+}
+
+function getMissionCompleteElement() {
+  let element = document.getElementById("mission-complete-popup");
+  if (!element) {
+    element = document.createElement("div");
+    element.id = "mission-complete-popup";
+    element.className = "mission-complete-popup";
+    element.setAttribute("role", "status");
+    element.setAttribute("aria-live", "polite");
+    element.innerHTML = `
+      <div class="mission-complete-popup__card" aria-label="Mission complete">
+        <img src="./mission-complete.webp" alt="Mission complete" class="mission-complete-popup__image" />
+      </div>
+    `;
+    document.body.appendChild(element);
+  }
+  return element;
+}
+
+function showMissionCompletePopup() {
+  if (missionCompleteTimer) {
+    clearTimeout(missionCompleteTimer);
+  }
+
+  missionCompleteShown = true;
+  missionCompleteVisible = true;
+  const element = getMissionCompleteElement();
+  requestAnimationFrame(() => element.classList.add("mission-complete-popup--show"));
+
+  missionCompleteTimer = setTimeout(() => {
+    hideMissionCompletePopup();
+  }, 3000);
+}
+
+function hideMissionCompletePopup() {
+  if (missionCompleteTimer) {
+    clearTimeout(missionCompleteTimer);
+    missionCompleteTimer = null;
+  }
+
+  missionCompleteVisible = false;
+  const element = document.getElementById("mission-complete-popup");
+  if (element) {
+    element.classList.remove("mission-complete-popup--show");
+  }
 }
 
 function showBulkResult(elementId, type, title, text) {
@@ -910,6 +998,9 @@ function renderAll() {
 function handleShoppingModeChange(mode) {
   shoppingMode = mode;
   shoppingModeHelpOpen = false;
+  if (mode !== "shopping") {
+    hideMissionCompletePopup();
+  }
 
   document.body.classList.toggle("shopping-mode", mode === "shopping");
 
@@ -1185,6 +1276,7 @@ function handleBulkDeleteItems() {
 
 function handleToggleShoppingSelection(id, checked) {
   setItemShoppingSelection(id, checked);
+  resetMissionCompleteEligibility();
   renderListTab();
 }
 
@@ -1202,6 +1294,11 @@ function handleTogglePurchased(id) {
     });
   }
   renderListTab();
+  if (item.purchased) {
+    evaluateMissionComplete();
+  } else {
+    resetMissionCompleteEligibility();
+  }
 }
 
 function handleResetShoppingSelection() {
@@ -1216,6 +1313,7 @@ function handleResetShoppingSelection() {
     });
     saveItems();
     saveFreeMemos();
+    resetMissionCompleteEligibility();
     renderListTab();
     showToast("対象選択をすべて解除しました。", "success");
   }, "解除する");
@@ -1253,6 +1351,7 @@ function handleDeleteFreeMemo(id) {
 
 function handleToggleFreeMemoSelection(id) {
   toggleFreeMemoSelection(id);
+  resetMissionCompleteEligibility();
   renderListTab();
 }
 
@@ -1270,6 +1369,11 @@ function handleToggleFreeMemoPurchased(id) {
     });
   }
   renderListTab();
+  if (memo.purchased) {
+    evaluateMissionComplete();
+  } else {
+    resetMissionCompleteEligibility();
+  }
 }
 
 function setupForms() {
