@@ -23,6 +23,8 @@ let itemDeleteMode = false;
 let categoryDeleteMode = false;
 let selectedCategoryIds = new Set();
 let selectedItemIds = new Set();
+let pendingPurchasedUndo = null;
+let pendingPurchasedUndoTimer = null;
 
 saveData(STORAGE_KEYS.items, items);
 saveAppSettings();
@@ -544,6 +546,16 @@ function getRemainingShoppingCount(list = items) {
   return list.filter(item => item.selectedForShopping && !item.purchased).length;
 }
 
+function getPurchasedLastEntries(entries) {
+  if (shoppingMode !== "shopping") {
+    return entries;
+  }
+  return [
+    ...entries.filter(entry => !entry.purchased),
+    ...entries.filter(entry => entry.purchased),
+  ];
+}
+
 function cleanupSelections() {
   const categoryIdSet = new Set(categories.map(category => category.id));
   const itemIdSet = new Set(items.map(item => item.id));
@@ -571,6 +583,74 @@ function showToast(message, type = "info") {
     toast.classList.remove("toast--show");
     toast.addEventListener("transitionend", () => toast.remove(), { once: true });
   }, 3000);
+}
+
+function getPurchasedUndoElement() {
+  let element = document.getElementById("purchased-undo");
+  if (!element) {
+    element = document.createElement("div");
+    element.id = "purchased-undo";
+    element.className = "purchased-undo";
+    element.setAttribute("role", "status");
+    element.setAttribute("aria-live", "polite");
+    document.body.appendChild(element);
+  }
+  return element;
+}
+
+function hidePurchasedUndo() {
+  const element = document.getElementById("purchased-undo");
+  if (element) {
+    element.classList.remove("purchased-undo--show");
+  }
+}
+
+function clearPurchasedUndo() {
+  if (pendingPurchasedUndoTimer) {
+    clearTimeout(pendingPurchasedUndoTimer);
+    pendingPurchasedUndoTimer = null;
+  }
+  pendingPurchasedUndo = null;
+  hidePurchasedUndo();
+}
+
+function showPurchasedUndo(action) {
+  if (pendingPurchasedUndoTimer) {
+    clearTimeout(pendingPurchasedUndoTimer);
+  }
+
+  pendingPurchasedUndo = action;
+  const element = getPurchasedUndoElement();
+  element.innerHTML = `
+    <span class="purchased-undo__message">チェック状態を変更しました</span>
+    <button type="button" class="purchased-undo__action" onclick="handleUndoPurchasedToggle()">元に戻す</button>
+  `;
+  requestAnimationFrame(() => element.classList.add("purchased-undo--show"));
+
+  pendingPurchasedUndoTimer = setTimeout(() => {
+    clearPurchasedUndo();
+  }, 4000);
+}
+
+function handleUndoPurchasedToggle() {
+  if (!pendingPurchasedUndo) return;
+
+  const undo = pendingPurchasedUndo;
+  clearPurchasedUndo();
+
+  if (undo.type === "item") {
+    const item = items.find(entry => entry.id === undo.id);
+    if (!item) return;
+    item.purchased = undo.previousPurchased;
+    saveItems();
+  } else if (undo.type === "memo") {
+    const memo = freeMemos.find(entry => entry.id === undo.id);
+    if (!memo) return;
+    memo.purchased = undo.previousPurchased;
+    saveFreeMemos();
+  }
+
+  renderListTab();
 }
 
 function showBulkResult(elementId, type, title, text) {
@@ -1109,7 +1189,18 @@ function handleToggleShoppingSelection(id, checked) {
 }
 
 function handleTogglePurchased(id) {
+  const item = items.find(entry => entry.id === id);
+  if (!item) return;
+  const previousPurchased = item.purchased;
+
   togglePurchased(id);
+  if (item.purchased !== previousPurchased) {
+    showPurchasedUndo({
+      type: "item",
+      id,
+      previousPurchased,
+    });
+  }
   renderListTab();
 }
 
@@ -1166,7 +1257,18 @@ function handleToggleFreeMemoSelection(id) {
 }
 
 function handleToggleFreeMemoPurchased(id) {
+  const memo = freeMemos.find(entry => entry.id === id);
+  if (!memo) return;
+  const previousPurchased = memo.purchased;
+
   toggleFreeMemoPurchased(id);
+  if (memo.purchased !== previousPurchased) {
+    showPurchasedUndo({
+      type: "memo",
+      id,
+      previousPurchased,
+    });
+  }
   renderListTab();
 }
 
@@ -1339,6 +1441,8 @@ function renderListTab() {
   const visibleMemos = shoppingMode === "shopping"
     ? freeMemos.filter(memo => memo.selectedForShopping)
     : freeMemos;
+  const displayItems = getPurchasedLastEntries(visibleItems);
+  const displayMemos = getPurchasedLastEntries(visibleMemos);
 
   if (sortedItems.length === 0 && freeMemos.length === 0) {
     container.innerHTML = `
@@ -1351,7 +1455,7 @@ function renderListTab() {
     return;
   }
 
-  if (shoppingMode === "shopping" && visibleItems.length === 0 && visibleMemos.length === 0) {
+  if (shoppingMode === "shopping" && displayItems.length === 0 && displayMemos.length === 0) {
     container.innerHTML = `
       ${renderShoppingModePanelCompact(remainingCount)}
       <div class="empty-state">
@@ -1374,9 +1478,9 @@ function renderListTab() {
     `;
   }
 
-  if (visibleMemos.length > 0) {
+  if (displayMemos.length > 0) {
     html += '<div class="free-memo-list">';
-    visibleMemos.forEach(memo => {
+    displayMemos.forEach(memo => {
       const checked = shoppingMode === "select" ? memo.selectedForShopping : memo.purchased;
       const changeHandler = shoppingMode === "select"
         ? `handleToggleFreeMemoSelection('${memo.id}')`
@@ -1422,10 +1526,10 @@ function renderListTab() {
   }
 
   // Product section
-  if (visibleItems.length > 0) {
+  if (displayItems.length > 0) {
     html += '<div class="list-table list-table--compact">';
 
-    visibleItems.forEach(item => {
+    displayItems.forEach(item => {
       const categoryName = item.categoryId && categoryMap[item.categoryId] ? categoryMap[item.categoryId].name : "";
       const categorySubHtml = categoryName
         ? `<span class="list-row__sub">${escapeHtml(categoryName)}</span>`
