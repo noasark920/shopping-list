@@ -32,7 +32,7 @@ let pendingPurchasedUndo = null;
 let pendingPurchasedUndoTimer = null;
 let missionCompleteShown = false;
 let missionCompleteVisible = false;
-let missionCompleteTimer = null;
+let missionCompleteTimers = [];
 
 saveData(STORAGE_KEYS.items, items);
 saveAppSettings();
@@ -828,39 +828,98 @@ function getMissionCompleteElement() {
     element.setAttribute("aria-live", "polite");
     element.innerHTML = `
       <div class="mission-complete-popup__card" aria-label="Mission complete">
-        <img src="./mission-complete.webp" alt="Mission complete" class="mission-complete-popup__image" />
+        <img src="./complete_n.webp" alt="Mission complete" class="mission-complete-popup__image" />
       </div>
+      <button type="button" class="mission-complete-popup__close" onclick="hideMissionCompletePopup()">
+        閉じる
+      </button>
     `;
     document.body.appendChild(element);
   }
   return element;
 }
 
-function showMissionCompletePopup() {
-  if (missionCompleteTimer) {
-    clearTimeout(missionCompleteTimer);
+function clearMissionCompleteTimers() {
+  missionCompleteTimers.forEach(timerId => clearTimeout(timerId));
+  missionCompleteTimers = [];
+}
+
+function setMissionCompleteImage(src) {
+  const element = getMissionCompleteElement();
+  const image = element.querySelector(".mission-complete-popup__image");
+  if (image) {
+    image.src = src;
   }
+}
+
+function setMissionCompleteCloseVisible(visible) {
+  const element = getMissionCompleteElement();
+  const closeButton = element.querySelector(".mission-complete-popup__close");
+  if (closeButton) {
+    closeButton.classList.toggle("mission-complete-popup__close--show", visible);
+  }
+}
+
+function scheduleMissionCompleteStep(callback, delay) {
+  const timerId = setTimeout(() => {
+    missionCompleteTimers = missionCompleteTimers.filter(id => id !== timerId);
+    if (!missionCompleteVisible) return;
+    callback();
+  }, delay);
+  missionCompleteTimers.push(timerId);
+}
+
+function getMissionCompleteRewardPattern() {
+  const rand = Math.random();
+  if (rand < 0.75) {
+    return {
+      initialImage: "./complete_n.webp",
+      steps: [{ delay: 3000, action: hideMissionCompletePopup }],
+    };
+  }
+  if (rand < 0.95) {
+    return {
+      initialImage: "./complete_n.webp",
+      steps: [
+        { delay: 1200, action: () => setMissionCompleteImage("./complete_r.webp") },
+        { delay: 3400, action: hideMissionCompletePopup },
+      ],
+    };
+  }
+  return {
+    initialImage: "./complete_n.webp",
+    steps: [
+      { delay: 1200, action: () => setMissionCompleteImage("./complete_sr.webp") },
+      { delay: 4000, action: hideMissionCompletePopup },
+    ],
+  };
+}
+
+function showMissionCompletePopup() {
+  clearMissionCompleteTimers();
 
   missionCompleteShown = true;
   missionCompleteVisible = true;
+  const rewardPattern = getMissionCompleteRewardPattern();
   const element = getMissionCompleteElement();
+  setMissionCompleteImage(rewardPattern.initialImage);
+  setMissionCompleteCloseVisible(false);
   requestAnimationFrame(() => element.classList.add("mission-complete-popup--show"));
 
-  missionCompleteTimer = setTimeout(() => {
-    hideMissionCompletePopup();
-  }, 3000);
+  scheduleMissionCompleteStep(() => setMissionCompleteCloseVisible(true), 1200);
+  rewardPattern.steps.forEach(step => {
+    scheduleMissionCompleteStep(step.action, step.delay);
+  });
 }
 
 function hideMissionCompletePopup() {
-  if (missionCompleteTimer) {
-    clearTimeout(missionCompleteTimer);
-    missionCompleteTimer = null;
-  }
+  clearMissionCompleteTimers();
 
   missionCompleteVisible = false;
   const element = document.getElementById("mission-complete-popup");
   if (element) {
     element.classList.remove("mission-complete-popup--show");
+    setMissionCompleteCloseVisible(false);
   }
 }
 

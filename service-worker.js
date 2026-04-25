@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'shopping-list-v11';
+const CACHE_VERSION = 'shopping-list-v13';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -7,7 +7,9 @@ const ASSETS_TO_CACHE = [
   './manifest.webmanifest',
   './icon-192.png',
   './icon-512.png',
-  './mission-complete.webp'
+  './complete_n.webp',
+  './complete_r.webp',
+  './complete_sr.webp'
 ];
 
 // Install event: cache core app files
