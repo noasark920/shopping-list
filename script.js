@@ -9,6 +9,7 @@ const STORAGE_KEYS = {
 
 const BACKUP_VERSION = "1.4.0";
 const MISSION_REWARD_COOLDOWN_MS = 5 * 60 * 1000;
+const SHOPPING_TOGGLE_LOCK_MS = 500;
 
 const MESSAGES = {
   noCategory: "カテゴリなし",
@@ -35,6 +36,8 @@ let pendingPurchasedUndoTimer = null;
 let missionCompleteShown = false;
 let missionCompleteVisible = false;
 let missionCompleteTimers = [];
+let shoppingToggleLockedUntil = 0;
+let shoppingToggleLockTimer = null;
 
 saveData(STORAGE_KEYS.items, items);
 saveAppSettings();
@@ -1126,18 +1129,18 @@ function renderCategoriesTab() {
   const selectedCount = sortedCategories.filter(category => selectedCategoryIds.has(category.id)).length;
   const bulkToolbarHtml = categoryDeleteMode ? `
     <div class="bulk-toolbar">
-      <div class="bulk-actions">
+      <div class="bulk-actions bulk-actions--delete-mode">
         <button type="button" class="btn btn--ghost btn--sm" onclick="handleSelectAllCategories()">
           すべてチェック
         </button>
         <button type="button" class="btn btn--ghost btn--sm" onclick="handleClearAllCategories()" ${selectedCount === 0 ? "disabled" : ""}>
           すべて解除
         </button>
-        <button type="button" class="btn btn--danger btn--sm" onclick="handleBulkDeleteCategories()" ${selectedCount === 0 ? "disabled" : ""}>
-          選択したカテゴリを削除
-        </button>
         <button type="button" class="btn btn--ghost btn--sm" onclick="handleCancelCategoryDeleteMode()">
           キャンセル
+        </button>
+        <button type="button" class="btn btn--danger btn--sm" onclick="handleBulkDeleteCategories()" ${selectedCount === 0 ? "disabled" : ""}>
+          選択したカテゴリを削除
         </button>
       </div>
       <div class="bulk-toolbar__count">${selectedCount}件選択中</div>
@@ -1181,18 +1184,18 @@ function renderItemsToolbar(selectedCount) {
 
   return `
     <div class="bulk-toolbar">
-      <div class="bulk-actions">
+      <div class="bulk-actions bulk-actions--delete-mode">
         <button type="button" class="btn btn--ghost btn--sm" onclick="handleSelectAllItems()">
           すべてチェック
         </button>
         <button type="button" class="btn btn--ghost btn--sm" onclick="handleClearAllItems()" ${selectedCount === 0 ? "disabled" : ""}>
           すべて解除
         </button>
-        <button type="button" class="btn btn--danger btn--sm" onclick="handleBulkDeleteItems()" ${selectedCount === 0 ? "disabled" : ""}>
-          選択した商品を削除
-        </button>
         <button type="button" class="btn btn--ghost btn--sm" onclick="handleCancelItemDeleteMode()">
           キャンセル
+        </button>
+        <button type="button" class="btn btn--danger btn--sm" onclick="handleBulkDeleteItems()" ${selectedCount === 0 ? "disabled" : ""}>
+          選択した商品を削除
         </button>
       </div>
       <div class="bulk-toolbar__count">${selectedCount}件選択中</div>
@@ -1604,13 +1607,33 @@ function handleToggleShoppingSelection(id, checked) {
   renderListTab();
 }
 
+function isShoppingPurchaseToggleLocked() {
+  return shoppingMode === "shopping" && Date.now() < shoppingToggleLockedUntil;
+}
+
+function lockShoppingPurchaseToggles() {
+  if (shoppingMode !== "shopping") return;
+  shoppingToggleLockedUntil = Date.now() + SHOPPING_TOGGLE_LOCK_MS;
+  if (shoppingToggleLockTimer) {
+    clearTimeout(shoppingToggleLockTimer);
+  }
+  shoppingToggleLockTimer = setTimeout(() => {
+    shoppingToggleLockTimer = null;
+    if (shoppingMode === "shopping") {
+      renderListTab();
+    }
+  }, SHOPPING_TOGGLE_LOCK_MS);
+}
+
 function handleTogglePurchased(id) {
+  if (isShoppingPurchaseToggleLocked()) return;
   const item = items.find(entry => entry.id === id);
   if (!item) return;
   const previousPurchased = item.purchased;
 
   togglePurchased(id);
   if (item.purchased !== previousPurchased) {
+    lockShoppingPurchaseToggles();
     showPurchasedUndo({
       type: "item",
       id,
@@ -1680,12 +1703,14 @@ function handleToggleFreeMemoSelection(id) {
 }
 
 function handleToggleFreeMemoPurchased(id) {
+  if (isShoppingPurchaseToggleLocked()) return;
   const memo = freeMemos.find(entry => entry.id === id);
   if (!memo) return;
   const previousPurchased = memo.purchased;
 
   toggleFreeMemoPurchased(id);
   if (memo.purchased !== previousPurchased) {
+    lockShoppingPurchaseToggles();
     showPurchasedUndo({
       type: "memo",
       id,
@@ -1954,6 +1979,7 @@ function renderListTab() {
     html += '<div class="free-memo-list">';
     displayMemos.forEach(memo => {
       const checked = shoppingMode === "select" ? memo.selectedForShopping : memo.purchased;
+      const purchaseInputDisabled = shoppingMode === "shopping" && isShoppingPurchaseToggleLocked() ? "disabled" : "";
       const changeHandler = shoppingMode === "select"
         ? `handleToggleFreeMemoSelection('${memo.id}')`
         : `handleToggleFreeMemoPurchased('${memo.id}')`;
@@ -1965,6 +1991,7 @@ function renderListTab() {
               <input
                 type="checkbox"
                 ${checked ? "checked" : ""}
+                ${purchaseInputDisabled}
                 onchange="${changeHandler}"
               />
             </span>
@@ -2007,6 +2034,7 @@ function renderListTab() {
         ? `<span class="list-row__sub">${escapeHtml(categoryName)}</span>`
         : "";
       const checked = shoppingMode === "select" ? item.selectedForShopping : item.purchased;
+      const purchaseInputDisabled = shoppingMode === "shopping" && isShoppingPurchaseToggleLocked() ? "disabled" : "";
       const changeHandler = shoppingMode === "select"
         ? `handleToggleShoppingSelection('${item.id}', this.checked)`
         : `handleTogglePurchased('${item.id}')`;
@@ -2017,6 +2045,7 @@ function renderListTab() {
             <input
               type="checkbox"
               ${checked ? "checked" : ""}
+              ${purchaseInputDisabled}
               onchange="${changeHandler}"
             />
           </span>

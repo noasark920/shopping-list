@@ -1065,18 +1065,53 @@ span.free-memo-row__text {
   }
 
   .panel-header,
-  .panel-header__actions,
   .bulk-toolbar,
-  .bulk-actions,
   .modal__actions {
     align-items: stretch;
     flex-direction: column;
   }
 
-  .panel-header__actions .btn,
-  .bulk-actions .btn,
   .modal__actions .btn {
     width: 100%;
+  }
+
+  .management-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+    gap: 8px;
+  }
+
+  .management-actions .btn {
+    width: 100%;
+    min-height: 38px;
+  }
+
+  .management-actions .btn--primary {
+    grid-column: 1 / -1;
+    min-height: 42px;
+  }
+
+  .bulk-actions--delete-mode {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+    gap: 8px;
+  }
+
+  .bulk-actions--delete-mode .btn {
+    width: 100%;
+    min-width: 0;
+    min-height: 38px;
+    padding: 7px 6px;
+    font-size: 0.76rem;
+    white-space: nowrap;
+  }
+
+  .bulk-actions--delete-mode .btn--danger {
+    grid-column: 1 / -1;
+    min-height: 42px;
+    font-size: 0.82rem;
   }
 
   .mode-panel__top {
