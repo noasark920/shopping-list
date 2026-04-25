@@ -372,7 +372,8 @@ body.body--modal-open { overflow: hidden; }
   justify-content: space-between;
   gap: 8px;
   flex-wrap: wrap;
-  margin-top: 6px;
+  margin-top: 8px;
+  padding-top: 2px;
 }
 
 .mode-action-btn {
@@ -384,14 +385,20 @@ body.body--modal-open { overflow: hidden; }
 .selection-memory {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   min-width: 0;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .selection-memory__buttons {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .selection-memory__btn,
@@ -408,7 +415,16 @@ body.body--modal-open { overflow: hidden; }
   line-height: 1;
   cursor: pointer;
   touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
   transition: background var(--transition), border-color var(--transition), color var(--transition);
+}
+
+.selection-memory__btn {
+  width: 36px;
+  height: 36px;
+  font-size: 0.92rem;
 }
 
 .selection-memory__btn--saved {
@@ -1038,18 +1054,23 @@ span.free-memo-row__text {
     font-size: 0.72rem;
   }
   .mode-actions {
-    gap: 6px;
+    gap: 7px;
+    margin-top: 8px;
   }
   .selection-memory {
-    gap: 5px;
+    gap: 6px;
   }
   .selection-memory__buttons {
-    gap: 3px;
+    gap: 4px;
   }
-  .selection-memory__btn,
+  .selection-memory__btn {
+    width: 34px;
+    height: 34px;
+    font-size: 0.88rem;
+  }
   .selection-memory-help__trigger {
-    width: 30px;
-    height: 30px;
+    width: 32px;
+    height: 32px;
     font-size: 0.8rem;
   }
   .list-table--compact {

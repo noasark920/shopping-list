@@ -426,7 +426,7 @@ function saveCurrentSelectionToMemory(slot) {
 function restoreSelectionMemory(slot) {
   const memory = selectionMemories[slot];
   if (!memory || isSelectionMemoryEmpty(slot)) {
-    alert(`メモリ${getSelectionMemoryLabel(slot)}は未登録です`);
+    showMessage(`メモリ${getSelectionMemoryLabel(slot)}は未登録です`);
     return;
   }
 
@@ -876,7 +876,7 @@ function closeModal(modalId) {
   document.body.classList.remove("body--modal-open");
 }
 
-function showConfirm(message, onOk, okLabel = "削除する") {
+function showConfirm(message, onOk, okLabel = "削除する", okClass = "btn btn--danger") {
   document.getElementById("confirm-message").textContent = message;
   openModal("confirm-modal");
 
@@ -886,6 +886,8 @@ function showConfirm(message, onOk, okLabel = "削除する") {
   const newCancel = oldCancel.cloneNode(true);
 
   newOk.textContent = okLabel;
+  newOk.className = okClass;
+  newCancel.style.display = "";
   oldOk.replaceWith(newOk);
   oldCancel.replaceWith(newCancel);
 
@@ -894,6 +896,24 @@ function showConfirm(message, onOk, okLabel = "削除する") {
     onOk();
   });
   newCancel.addEventListener("click", () => closeModal("confirm-modal"));
+}
+
+function showMessage(message, okLabel = "OK") {
+  document.getElementById("confirm-message").textContent = message;
+  openModal("confirm-modal");
+
+  const oldOk = document.getElementById("confirm-ok-btn");
+  const oldCancel = document.getElementById("confirm-cancel-btn");
+  const newOk = oldOk.cloneNode(true);
+  const newCancel = oldCancel.cloneNode(true);
+
+  newOk.textContent = okLabel;
+  newOk.className = "btn btn--primary";
+  newCancel.style.display = "none";
+  oldOk.replaceWith(newOk);
+  oldCancel.replaceWith(newCancel);
+
+  newOk.addEventListener("click", () => closeModal("confirm-modal"));
 }
 
 function populateCategorySelect(selectId, selectedCategoryId) {
@@ -1171,11 +1191,11 @@ function handleSelectionMemoryPressStart(slot) {
     memoryLongPressTriggered = true;
     memoryPressTimer = null;
     const label = getSelectionMemoryLabel(slot);
-    if (confirm(`現在の対象選択状態をメモリ${label}に登録しますか？`)) {
+    showConfirm(`現在の対象選択状態をメモリ${label}に登録しますか？`, () => {
       saveCurrentSelectionToMemory(slot);
-      alert(`メモリ${label}に登録しました`);
+      showMessage(`メモリ${label}に登録しました`);
       renderListTab();
-    }
+    }, "登録する", "btn btn--primary");
   }, 650);
 }
 
