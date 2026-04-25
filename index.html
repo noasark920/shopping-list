@@ -45,54 +45,84 @@
           <span class="app-menu__toggle-line" aria-hidden="true"></span>
         </button>
         <div id="app-menu-dropdown" class="app-menu__dropdown" role="menu" aria-label="画面切替">
-          <button
-            id="menu-list"
-            class="app-menu__item app-menu__item--active"
-            type="button"
-            data-tab="list"
-            role="menuitem"
-            onclick="handleTabClick('list')"
-          >
-            買い物リスト
-          </button>
-          <button
-            id="menu-items"
-            class="app-menu__item"
-            type="button"
-            data-tab="items"
-            role="menuitem"
-            onclick="handleTabClick('items')"
-          >
-            商品管理
-          </button>
-          <button
-            id="menu-categories"
-            class="app-menu__item"
-            type="button"
-            data-tab="categories"
-            role="menuitem"
-            onclick="handleTabClick('categories')"
-          >
-            カテゴリ管理
-          </button>
-          <button
-            id="menu-export"
-            class="app-menu__item"
-            type="button"
-            role="menuitem"
-            onclick="handleExportBackup()"
-          >
-            バックアップをエクスポート
-          </button>
-          <button
-            id="menu-import"
-            class="app-menu__item"
-            type="button"
-            role="menuitem"
-            onclick="triggerImportBackup()"
-          >
-            バックアップをインポート
-          </button>
+          <div class="app-menu__section">
+            <div class="app-menu__section-title">画面</div>
+            <button
+              id="menu-list"
+              class="app-menu__item app-menu__item--active"
+              type="button"
+              data-tab="list"
+              role="menuitem"
+              onclick="handleTabClick('list')"
+            >
+              買い物リスト
+            </button>
+            <button
+              id="menu-items"
+              class="app-menu__item"
+              type="button"
+              data-tab="items"
+              role="menuitem"
+              onclick="handleTabClick('items')"
+            >
+              商品管理
+            </button>
+            <button
+              id="menu-categories"
+              class="app-menu__item"
+              type="button"
+              data-tab="categories"
+              role="menuitem"
+              onclick="handleTabClick('categories')"
+            >
+              カテゴリ管理
+            </button>
+          </div>
+          <div class="app-menu__section">
+            <div class="app-menu__section-title">表示設定</div>
+            <label class="app-menu__setting" role="menuitem">
+              <input
+                id="setting-show-category-labels"
+                type="checkbox"
+                onchange="handleToggleCategoryLabelsSetting(this.checked)"
+              />
+              <span>カテゴリ名を表示</span>
+              <button
+                class="app-menu__setting-help"
+                type="button"
+                aria-label="カテゴリ名表示設定の説明を表示"
+                aria-expanded="false"
+                onclick="toggleCategoryLabelSettingHelp(event)"
+              >
+                ?
+              </button>
+            </label>
+          </div>
+          <div id="category-label-setting-tooltip" class="app-menu__setting-tooltip" role="tooltip">
+            対象選択モード・買い物モードの商品にカテゴリ名を表示します。<br />
+            商品管理では、確認のため常にカテゴリ名を表示します。
+          </div>
+          <div class="app-menu__section">
+            <div class="app-menu__section-title">データ管理</div>
+            <button
+              id="menu-export"
+              class="app-menu__item"
+              type="button"
+              role="menuitem"
+              onclick="handleExportBackup()"
+            >
+              バックアップをエクスポート
+            </button>
+            <button
+              id="menu-import"
+              class="app-menu__item"
+              type="button"
+              role="menuitem"
+              onclick="triggerImportBackup()"
+            >
+              バックアップをインポート
+            </button>
+          </div>
         </div>
       </div>
     </header>

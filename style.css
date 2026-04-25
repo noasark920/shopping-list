@@ -127,7 +127,27 @@ body.body--modal-open { overflow: hidden; }
 
 .app-menu__dropdown--open {
   display: grid;
-  gap: 4px;
+  gap: 6px;
+}
+
+.app-menu__section {
+  display: grid;
+  gap: 3px;
+}
+
+.app-menu__section + .app-menu__section {
+  margin-top: 2px;
+  padding-top: 7px;
+  border-top: 1px solid var(--color-border);
+}
+
+.app-menu__section-title {
+  padding: 2px 8px 1px;
+  color: var(--color-text-muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0.08em;
 }
 
 .app-menu__item {
@@ -151,6 +171,77 @@ body.body--modal-open { overflow: hidden; }
 .app-menu__item--active {
   background: var(--color-accent-light);
   color: #fff;
+}
+
+.app-menu__setting {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: var(--color-text);
+  font-size: 0.88rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.app-menu__setting:hover {
+  background: var(--color-surface-2);
+}
+
+.app-menu__setting input {
+  flex-shrink: 0;
+}
+
+.app-menu__setting span {
+  min-width: 0;
+  flex: 1;
+}
+
+.app-menu__setting-help {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.app-menu__setting-help:hover {
+  border-color: rgba(255, 255, 255, 0.18);
+  background: var(--color-surface-2);
+  color: var(--color-text);
+}
+
+.app-menu__setting-tooltip {
+  position: fixed;
+  top: 0;
+  left: 12px;
+  z-index: 30;
+  display: none;
+  width: min(280px, calc(100vw - 24px));
+  max-width: calc(100vw - 24px);
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: rgba(26, 29, 39, 0.98);
+  color: var(--color-text-muted);
+  font-size: 0.76rem;
+  line-height: 1.55;
+  box-shadow: var(--shadow-md);
+  white-space: normal;
+}
+
+.app-menu__setting-tooltip--open {
+  display: block;
 }
 
 .tab-panel { display: none; }

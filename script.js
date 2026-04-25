@@ -24,6 +24,7 @@ let appMenuOpen = false;
 let shoppingMode = "shopping";
 let shoppingModeHelpOpen = false;
 let selectionMemoryHelpOpen = false;
+let categoryLabelSettingHelpOpen = false;
 let itemDeleteMode = false;
 let categoryDeleteMode = false;
 let selectedCategoryIds = new Set();
@@ -60,12 +61,18 @@ function saveData(key, data) {
 
 function loadSettings() {
   const raw = localStorage.getItem(STORAGE_KEYS.settings);
-  if (!raw) return {};
+  if (!raw) return { showCategoryLabelsInShoppingList: false };
   try {
     const parsed = JSON.parse(raw);
-    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return { showCategoryLabelsInShoppingList: false };
+    }
+    return {
+      ...parsed,
+      showCategoryLabelsInShoppingList: Boolean(parsed.showCategoryLabelsInShoppingList),
+    };
   } catch {
-    return {};
+    return { showCategoryLabelsInShoppingList: false };
   }
 }
 
@@ -288,8 +295,11 @@ function applyBackupData(backup) {
   items = normalizeItems(backup.items);
 
   settings = backup.settings && typeof backup.settings === "object" && !Array.isArray(backup.settings)
-    ? backup.settings
-    : {};
+    ? {
+      ...backup.settings,
+      showCategoryLabelsInShoppingList: Boolean(backup.settings.showCategoryLabelsInShoppingList),
+    }
+    : { showCategoryLabelsInShoppingList: false };
 
   freeMemos = backup.freeMemos ? backup.freeMemos.map(normalizeFreeMemo) : [];
   selectionMemories = normalizeSelectionMemories(backup.selectionMemories);
@@ -1300,6 +1310,38 @@ function closeSelectionMemoryHelp() {
   renderListTab();
 }
 
+function toggleCategoryLabelSettingHelp(event) {
+  event.preventDefault();
+  event.stopPropagation();
+  categoryLabelSettingHelpOpen = !categoryLabelSettingHelpOpen;
+  renderTabs();
+  if (categoryLabelSettingHelpOpen) {
+    requestAnimationFrame(positionCategoryLabelSettingTooltip);
+  }
+}
+
+function closeCategoryLabelSettingHelp() {
+  if (!categoryLabelSettingHelpOpen) return;
+  categoryLabelSettingHelpOpen = false;
+  renderTabs();
+}
+
+function positionCategoryLabelSettingTooltip() {
+  const trigger = document.querySelector(".app-menu__setting-help");
+  const tooltip = document.getElementById("category-label-setting-tooltip");
+  if (!trigger || !tooltip || !categoryLabelSettingHelpOpen) return;
+
+  const margin = 12;
+  const triggerRect = trigger.getBoundingClientRect();
+  const tooltipRect = tooltip.getBoundingClientRect();
+  const preferredLeft = triggerRect.right - tooltipRect.width;
+  const maxLeft = window.innerWidth - tooltipRect.width - margin;
+  const left = Math.max(margin, Math.min(preferredLeft, maxLeft));
+
+  tooltip.style.left = `${left}px`;
+  tooltip.style.top = `${triggerRect.bottom + 8}px`;
+}
+
 function positionSelectionMemoryTooltip() {
   const trigger = document.querySelector(".selection-memory-help__trigger");
   const tooltip = document.querySelector(".selection-memory-help__tooltip--open");
@@ -1607,6 +1649,12 @@ function handleToggleShoppingSelection(id, checked) {
   renderListTab();
 }
 
+function handleToggleCategoryLabelsSetting(checked) {
+  settings.showCategoryLabelsInShoppingList = checked;
+  saveAppSettings();
+  renderListTab();
+}
+
 function isShoppingPurchaseToggleLocked() {
   return shoppingMode === "shopping" && Date.now() < shoppingToggleLockedUntil;
 }
@@ -1835,6 +1883,18 @@ function renderTabs() {
   if (menuDropdown) {
     menuDropdown.classList.toggle("app-menu__dropdown--open", appMenuOpen);
   }
+  const categoryLabelHelpButton = document.querySelector(".app-menu__setting-help");
+  const categoryLabelTooltip = document.getElementById("category-label-setting-tooltip");
+  if (categoryLabelHelpButton) {
+    categoryLabelHelpButton.setAttribute("aria-expanded", categoryLabelSettingHelpOpen ? "true" : "false");
+  }
+  if (categoryLabelTooltip) {
+    categoryLabelTooltip.classList.toggle("app-menu__setting-tooltip--open", categoryLabelSettingHelpOpen);
+  }
+  const categoryLabelSetting = document.getElementById("setting-show-category-labels");
+  if (categoryLabelSetting) {
+    categoryLabelSetting.checked = Boolean(settings.showCategoryLabelsInShoppingList);
+  }
 }
 
 function renderShoppingModePanelCompact(remainingCount) {
@@ -2030,7 +2090,7 @@ function renderListTab() {
 
     displayItems.forEach(item => {
       const categoryName = item.categoryId && categoryMap[item.categoryId] ? categoryMap[item.categoryId].name : "";
-      const categorySubHtml = categoryName
+      const categorySubHtml = settings.showCategoryLabelsInShoppingList && categoryName
         ? `<span class="list-row__sub">${escapeHtml(categoryName)}</span>`
         : "";
       const checked = shoppingMode === "select" ? item.selectedForShopping : item.purchased;
@@ -2088,6 +2148,14 @@ function setupAppMenu() {
     if (!menuArea.contains(event.target)) {
       closeAppMenu();
     }
+  });
+
+  document.addEventListener("click", event => {
+    const tooltip = document.getElementById("category-label-setting-tooltip");
+    const helpButton = document.querySelector(".app-menu__setting-help");
+    if (!categoryLabelSettingHelpOpen) return;
+    if (tooltip?.contains(event.target) || helpButton?.contains(event.target)) return;
+    closeCategoryLabelSettingHelp();
   });
 }
 
