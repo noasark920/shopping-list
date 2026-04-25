@@ -61,18 +61,30 @@ function saveData(key, data) {
 
 function loadSettings() {
   const raw = localStorage.getItem(STORAGE_KEYS.settings);
-  if (!raw) return { showCategoryLabelsInShoppingList: false };
+  if (!raw) {
+    return {
+      showCategoryLabelsInShoppingList: false,
+      movePurchasedToBottom: true,
+    };
+  }
   try {
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-      return { showCategoryLabelsInShoppingList: false };
+      return {
+        showCategoryLabelsInShoppingList: false,
+        movePurchasedToBottom: true,
+      };
     }
     return {
       ...parsed,
       showCategoryLabelsInShoppingList: Boolean(parsed.showCategoryLabelsInShoppingList),
+      movePurchasedToBottom: parsed.movePurchasedToBottom !== false,
     };
   } catch {
-    return { showCategoryLabelsInShoppingList: false };
+    return {
+      showCategoryLabelsInShoppingList: false,
+      movePurchasedToBottom: true,
+    };
   }
 }
 
@@ -298,8 +310,9 @@ function applyBackupData(backup) {
     ? {
       ...backup.settings,
       showCategoryLabelsInShoppingList: Boolean(backup.settings.showCategoryLabelsInShoppingList),
+      movePurchasedToBottom: backup.settings.movePurchasedToBottom !== false,
     }
-    : { showCategoryLabelsInShoppingList: false };
+    : { showCategoryLabelsInShoppingList: false, movePurchasedToBottom: true };
 
   freeMemos = backup.freeMemos ? backup.freeMemos.map(normalizeFreeMemo) : [];
   selectionMemories = normalizeSelectionMemories(backup.selectionMemories);
@@ -688,7 +701,7 @@ function getRemainingShoppingCount(list = items) {
 }
 
 function getPurchasedLastEntries(entries) {
-  if (shoppingMode !== "shopping") {
+  if (shoppingMode !== "shopping" || !settings.movePurchasedToBottom) {
     return entries;
   }
   return [
@@ -1655,6 +1668,12 @@ function handleToggleCategoryLabelsSetting(checked) {
   renderListTab();
 }
 
+function handleToggleMovePurchasedToBottomSetting(checked) {
+  settings.movePurchasedToBottom = checked;
+  saveAppSettings();
+  renderListTab();
+}
+
 function isShoppingPurchaseToggleLocked() {
   return shoppingMode === "shopping" && Date.now() < shoppingToggleLockedUntil;
 }
@@ -1894,6 +1913,10 @@ function renderTabs() {
   const categoryLabelSetting = document.getElementById("setting-show-category-labels");
   if (categoryLabelSetting) {
     categoryLabelSetting.checked = Boolean(settings.showCategoryLabelsInShoppingList);
+  }
+  const movePurchasedToBottomSetting = document.getElementById("setting-move-purchased-to-bottom");
+  if (movePurchasedToBottomSetting) {
+    movePurchasedToBottomSetting.checked = settings.movePurchasedToBottom !== false;
   }
 }
 

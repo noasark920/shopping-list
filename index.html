@@ -97,6 +97,14 @@
                 ?
               </button>
             </label>
+            <label class="app-menu__setting" role="menuitem">
+              <input
+                id="setting-move-purchased-to-bottom"
+                type="checkbox"
+                onchange="handleToggleMovePurchasedToBottomSetting(this.checked)"
+              />
+              <span>購入済みを下へ移動</span>
+            </label>
           </div>
           <div id="category-label-setting-tooltip" class="app-menu__setting-tooltip" role="tooltip">
             対象選択モード・買い物モードの商品にカテゴリ名を表示します。<br />
