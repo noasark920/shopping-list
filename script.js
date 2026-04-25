@@ -4,9 +4,11 @@ const STORAGE_KEYS = {
   settings: "shoppingList_settings",
   freeMemos: "shoppingList_freeMemos",
   selectionMemories: "shoppingSelectionMemories",
+  missionRewardLastDrawAt: "missionRewardLastDrawAt",
 };
 
 const BACKUP_VERSION = "1.4.0";
+const MISSION_REWARD_COOLDOWN_MS = 5 * 60 * 1000;
 
 const MESSAGES = {
   noCategory: "カテゴリなし",
@@ -869,13 +871,37 @@ function scheduleMissionCompleteStep(callback, delay) {
   missionCompleteTimers.push(timerId);
 }
 
+function getMissionRewardLastDrawAt() {
+  const value = Number(localStorage.getItem(STORAGE_KEYS.missionRewardLastDrawAt));
+  return Number.isFinite(value) ? value : 0;
+}
+
+function canDrawRareMissionReward(now = Date.now()) {
+  const lastDrawAt = getMissionRewardLastDrawAt();
+  return !lastDrawAt || now - lastDrawAt >= MISSION_REWARD_COOLDOWN_MS;
+}
+
+function saveMissionRewardDrawAt(timestamp) {
+  localStorage.setItem(STORAGE_KEYS.missionRewardLastDrawAt, String(timestamp));
+}
+
+function getNormalMissionCompleteRewardPattern() {
+  return {
+    initialImage: "./complete_n.webp",
+    steps: [{ delay: 3000, action: hideMissionCompletePopup }],
+  };
+}
+
 function getMissionCompleteRewardPattern() {
+  const now = Date.now();
+  if (!canDrawRareMissionReward(now)) {
+    return getNormalMissionCompleteRewardPattern();
+  }
+
+  saveMissionRewardDrawAt(now);
   const rand = Math.random();
   if (rand < 0.75) {
-    return {
-      initialImage: "./complete_n.webp",
-      steps: [{ delay: 3000, action: hideMissionCompletePopup }],
-    };
+    return getNormalMissionCompleteRewardPattern();
   }
   if (rand < 0.95) {
     return {
