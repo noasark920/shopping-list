@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'shopping-list-v21';
+const CACHE_VERSION = 'shopping-list-v22';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
