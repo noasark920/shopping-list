@@ -468,9 +468,19 @@ body.body--modal-open { overflow: hidden; }
 }
 
 .mode-action-btn {
-  min-width: 70px;
+  min-width: 58px;
   font-size: 0.75rem;
   color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.mode-action-buttons {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-left: auto;
+  flex-shrink: 0;
 }
 
 .selection-memory {
@@ -1243,6 +1253,13 @@ span.free-memo-row__text {
   .mode-actions {
     gap: 7px;
     margin-top: 8px;
+  }
+  .mode-action-btn {
+    min-width: 52px;
+    padding-inline: 8px;
+  }
+  .mode-action-buttons {
+    gap: 5px;
   }
   .selection-memory {
     gap: 6px;

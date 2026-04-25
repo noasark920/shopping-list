@@ -1154,10 +1154,10 @@ function renderCategoriesTab() {
     <div class="bulk-toolbar">
       <div class="bulk-actions bulk-actions--delete-mode">
         <button type="button" class="btn btn--ghost btn--sm" onclick="handleSelectAllCategories()">
-          すべてチェック
+          全選択
         </button>
         <button type="button" class="btn btn--ghost btn--sm" onclick="handleClearAllCategories()" ${selectedCount === 0 ? "disabled" : ""}>
-          すべて解除
+          全解除
         </button>
         <button type="button" class="btn btn--ghost btn--sm" onclick="handleCancelCategoryDeleteMode()">
           キャンセル
@@ -1209,10 +1209,10 @@ function renderItemsToolbar(selectedCount) {
     <div class="bulk-toolbar">
       <div class="bulk-actions bulk-actions--delete-mode">
         <button type="button" class="btn btn--ghost btn--sm" onclick="handleSelectAllItems()">
-          すべてチェック
+          全選択
         </button>
         <button type="button" class="btn btn--ghost btn--sm" onclick="handleClearAllItems()" ${selectedCount === 0 ? "disabled" : ""}>
-          すべて解除
+          全解除
         </button>
         <button type="button" class="btn btn--ghost btn--sm" onclick="handleCancelItemDeleteMode()">
           キャンセル
@@ -1716,7 +1716,7 @@ function handleTogglePurchased(id) {
 }
 
 function handleResetShoppingSelection() {
-  showConfirm("選択中の商品をすべて解除しますか？", () => {
+  showConfirm("選択中の対象を全解除しますか？", () => {
     items.forEach(item => {
       item.selectedForShopping = false;
       item.purchased = false;
@@ -1729,8 +1729,24 @@ function handleResetShoppingSelection() {
     saveFreeMemos();
     resetMissionCompleteEligibility();
     renderListTab();
-    showToast("対象選択をすべて解除しました。", "success");
-  }, "解除する");
+    showToast("対象選択を全解除しました。", "success");
+  }, "全解除");
+}
+
+function handleSelectAllShoppingTargets() {
+  if (shoppingMode !== "select") return;
+
+  items.forEach(item => {
+    item.selectedForShopping = true;
+  });
+  freeMemos.forEach(memo => {
+    memo.selectedForShopping = true;
+  });
+  saveItems();
+  saveFreeMemos();
+  resetMissionCompleteEligibility();
+  renderListTab();
+  showToast("対象を全選択しました。", "success");
 }
 
 function handleAddFreeMemo() {
@@ -1964,9 +1980,14 @@ function renderShoppingModePanelCompact(remainingCount) {
             </div>
           </div>
         </div>
-        <button type="button" class="btn btn--ghost btn--sm mode-action-btn" onclick="handleResetShoppingSelection()">
-          すべて解除
-        </button>
+        <div class="mode-action-buttons">
+          <button type="button" class="btn btn--ghost btn--sm mode-action-btn" onclick="handleSelectAllShoppingTargets()">
+            全選択
+          </button>
+          <button type="button" class="btn btn--ghost btn--sm mode-action-btn" onclick="handleResetShoppingSelection()">
+            全解除
+          </button>
+        </div>
       </div>
     ` : "";
 
