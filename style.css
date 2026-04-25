@@ -422,9 +422,18 @@ body.body--modal-open { overflow: hidden; }
 }
 
 .selection-memory__btn {
-  width: 36px;
+  width: 46px;
   height: 36px;
+  padding: 0 8px;
   font-size: 0.92rem;
+}
+
+.selection-memory__label {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: clip;
+  white-space: nowrap;
 }
 
 .selection-memory__btn--saved {
@@ -854,6 +863,24 @@ span.free-memo-row__text {
   color: var(--color-text);
 }
 
+.memory-name-input {
+  width: 100%;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.9rem;
+}
+
+.memory-name-input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px var(--color-accent-light);
+}
+
 #toast-container {
   position: fixed;
   bottom: 24px;
@@ -1064,8 +1091,9 @@ span.free-memo-row__text {
     gap: 4px;
   }
   .selection-memory__btn {
-    width: 34px;
+    width: 42px;
     height: 34px;
+    padding: 0 7px;
     font-size: 0.88rem;
   }
   .selection-memory-help__trigger {

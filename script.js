@@ -6,7 +6,7 @@ const STORAGE_KEYS = {
   selectionMemories: "shoppingSelectionMemories",
 };
 
-const BACKUP_VERSION = "1.3.8";
+const BACKUP_VERSION = "1.4.0";
 
 const MESSAGES = {
   noCategory: "カテゴリなし",
@@ -89,9 +89,9 @@ function saveFreeMemos() {
 
 function createEmptySelectionMemories() {
   return {
-    1: { itemIds: [], memoIds: [] },
-    2: { itemIds: [], memoIds: [] },
-    3: { itemIds: [], memoIds: [] },
+    1: { itemIds: [], memoIds: [], name: "" },
+    2: { itemIds: [], memoIds: [], name: "" },
+    3: { itemIds: [], memoIds: [], name: "" },
   };
 }
 
@@ -99,6 +99,7 @@ function normalizeSelectionMemorySlot(slot) {
   return {
     itemIds: Array.isArray(slot?.itemIds) ? slot.itemIds.filter(id => typeof id === "string") : [],
     memoIds: Array.isArray(slot?.memoIds) ? slot.memoIds.filter(id => typeof id === "string") : [],
+    name: typeof slot?.name === "string" ? slot.name.trim().slice(0, 20) : "",
   };
 }
 
@@ -238,7 +239,8 @@ function validateBackupData(data) {
       return memory !== undefined &&
         (!memory || typeof memory !== "object" || Array.isArray(memory) ||
           (memory.itemIds !== undefined && !Array.isArray(memory.itemIds)) ||
-          (memory.memoIds !== undefined && !Array.isArray(memory.memoIds)));
+          (memory.memoIds !== undefined && !Array.isArray(memory.memoIds)) ||
+          (memory.name !== undefined && typeof memory.name !== "string"));
     });
     if (invalidMemory) {
       return "バックアップの対象選択メモリ情報が不正です。";
@@ -410,15 +412,28 @@ function getSelectionMemoryLabel(slot) {
   return String(slot);
 }
 
+function getSelectionMemoryDisplayName(slot) {
+  const name = selectionMemories[slot]?.name;
+  return name ? name : getSelectionMemoryLabel(slot);
+}
+
+function getSelectionMemoryButtonLabel(slot) {
+  const name = selectionMemories[slot]?.name;
+  return name ? Array.from(name).slice(0, 2).join("") : getSelectionMemoryLabel(slot);
+}
+
 function isSelectionMemoryEmpty(slot) {
   const memory = selectionMemories[slot];
   return !memory || (memory.itemIds.length === 0 && memory.memoIds.length === 0);
 }
 
-function saveCurrentSelectionToMemory(slot) {
+function saveCurrentSelectionToMemory(slot, nameInput = "") {
+  const currentName = selectionMemories[slot]?.name || "";
+  const nextName = nameInput.trim() || currentName;
   selectionMemories[slot] = {
     itemIds: items.filter(item => item.selectedForShopping).map(item => item.id),
     memoIds: freeMemos.filter(memo => memo.selectedForShopping).map(memo => memo.id),
+    name: nextName.slice(0, 20),
   };
   saveSelectionMemories();
 }
@@ -876,8 +891,13 @@ function closeModal(modalId) {
   document.body.classList.remove("body--modal-open");
 }
 
-function showConfirm(message, onOk, okLabel = "削除する", okClass = "btn btn--danger") {
-  document.getElementById("confirm-message").textContent = message;
+function setConfirmMessage(message, extraHtml = "") {
+  const messageElement = document.getElementById("confirm-message");
+  messageElement.innerHTML = `${escapeHtml(message)}${extraHtml}`;
+}
+
+function showConfirm(message, onOk, okLabel = "削除する", okClass = "btn btn--danger", options = {}) {
+  setConfirmMessage(message, options.extraHtml || "");
   openModal("confirm-modal");
 
   const oldOk = document.getElementById("confirm-ok-btn");
@@ -899,7 +919,7 @@ function showConfirm(message, onOk, okLabel = "削除する", okClass = "btn btn
 }
 
 function showMessage(message, okLabel = "OK") {
-  document.getElementById("confirm-message").textContent = message;
+  setConfirmMessage(message);
   openModal("confirm-modal");
 
   const oldOk = document.getElementById("confirm-ok-btn");
@@ -914,6 +934,33 @@ function showMessage(message, okLabel = "OK") {
   oldCancel.replaceWith(newCancel);
 
   newOk.addEventListener("click", () => closeModal("confirm-modal"));
+}
+
+function showMemoryRegistrationConfirm(slot) {
+  const label = getSelectionMemoryLabel(slot);
+  const currentName = selectionMemories[slot]?.name || "";
+  showConfirm(`現在の対象選択状態をメモリ${label}に登録しますか？`, () => {
+    const input = document.getElementById("memory-name-input");
+    saveCurrentSelectionToMemory(slot, input ? input.value : "");
+    showMessage(`メモリ${label}に登録しました`);
+    renderListTab();
+  }, "登録する", "btn btn--primary", {
+    extraHtml: `
+      <input
+        id="memory-name-input"
+        class="memory-name-input"
+        type="text"
+        maxlength="20"
+        value="${escapeHtml(currentName)}"
+        placeholder="メモリ名を入力（例：毎日用）"
+      />
+    `,
+  });
+
+  const input = document.getElementById("memory-name-input");
+  if (input) {
+    input.focus();
+  }
 }
 
 function populateCategorySelect(selectId, selectedCategoryId) {
@@ -1190,12 +1237,7 @@ function handleSelectionMemoryPressStart(slot) {
   memoryPressTimer = setTimeout(() => {
     memoryLongPressTriggered = true;
     memoryPressTimer = null;
-    const label = getSelectionMemoryLabel(slot);
-    showConfirm(`現在の対象選択状態をメモリ${label}に登録しますか？`, () => {
-      saveCurrentSelectionToMemory(slot);
-      showMessage(`メモリ${label}に登録しました`);
-      renderListTab();
-    }, "登録する", "btn btn--primary");
+    showMemoryRegistrationConfirm(slot);
   }, 650);
 }
 
@@ -1699,14 +1741,15 @@ function renderShoppingModePanelCompact(remainingCount) {
               <button
                 type="button"
                 class="selection-memory__btn ${isSelectionMemoryEmpty(slot) ? "" : "selection-memory__btn--saved"}"
-                aria-label="メモリ${getSelectionMemoryLabel(slot)}"
+                aria-label="メモリ${getSelectionMemoryLabel(slot)} ${escapeHtml(getSelectionMemoryDisplayName(slot))}"
+                title="${escapeHtml(getSelectionMemoryDisplayName(slot))}"
                 onpointerdown="handleSelectionMemoryPressStart('${slot}')"
                 onpointerup="handleSelectionMemoryPressEnd('${slot}')"
                 onpointerleave="handleSelectionMemoryPressCancel()"
                 onpointercancel="handleSelectionMemoryPressCancel()"
                 oncontextmenu="event.preventDefault()"
               >
-                ${getSelectionMemoryLabel(slot)}
+                <span class="selection-memory__label">${escapeHtml(getSelectionMemoryButtonLabel(slot))}</span>
               </button>
             `).join("")}
           </div>
