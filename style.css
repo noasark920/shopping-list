@@ -368,14 +368,100 @@ body.body--modal-open { overflow: hidden; }
 
 .mode-actions {
   display: flex;
-  justify-content: center;
-  margin-top: 8px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 6px;
 }
 
 .mode-action-btn {
   min-width: 70px;
   font-size: 0.75rem;
   color: var(--color-text-muted);
+}
+
+.selection-memory {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.selection-memory__buttons {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.selection-memory__btn,
+.selection-memory-help__trigger {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  font-size: 0.86rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background var(--transition), border-color var(--transition), color var(--transition);
+}
+
+.selection-memory__btn--saved {
+  border-color: rgba(108, 99, 255, 0.45);
+  background: var(--color-accent-light);
+  color: var(--color-text);
+}
+
+.selection-memory__btn:hover,
+.selection-memory-help__trigger:hover {
+  border-color: rgba(255, 255, 255, 0.18);
+  background: var(--color-surface-2);
+  color: var(--color-text);
+}
+
+.selection-memory-help {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.selection-memory-help__trigger {
+  font-size: 0.85rem;
+}
+
+.selection-memory-help__tooltip {
+  position: fixed;
+  top: 0;
+  left: 12px;
+  z-index: 10;
+  width: min(300px, calc(100vw - 24px));
+  max-width: calc(100vw - 24px);
+  display: none;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: rgba(26, 29, 39, 0.98);
+  box-shadow: var(--shadow-md);
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.selection-memory-help__tooltip--open {
+  display: block;
+}
+
+.selection-memory-help__tooltip p {
+  font-size: 0.76rem;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+.selection-memory-help__tooltip p + p {
+  margin-top: 5px;
 }
 
 .mode-help__item {
@@ -950,6 +1036,21 @@ span.free-memo-row__text {
   }
   .mode-switch__count {
     font-size: 0.72rem;
+  }
+  .mode-actions {
+    gap: 6px;
+  }
+  .selection-memory {
+    gap: 5px;
+  }
+  .selection-memory__buttons {
+    gap: 3px;
+  }
+  .selection-memory__btn,
+  .selection-memory-help__trigger {
+    width: 30px;
+    height: 30px;
+    font-size: 0.8rem;
   }
   .list-table--compact {
     gap: 6px;

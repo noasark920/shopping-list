@@ -3,9 +3,10 @@ const STORAGE_KEYS = {
   items: "shoppingList_items",
   settings: "shoppingList_settings",
   freeMemos: "shoppingList_freeMemos",
+  selectionMemories: "shoppingSelectionMemories",
 };
 
-const BACKUP_VERSION = "1.3.0";
+const BACKUP_VERSION = "1.3.8";
 
 const MESSAGES = {
   noCategory: "カテゴリなし",
@@ -19,10 +20,14 @@ let activeTab = "list";
 let appMenuOpen = false;
 let shoppingMode = "shopping";
 let shoppingModeHelpOpen = false;
+let selectionMemoryHelpOpen = false;
 let itemDeleteMode = false;
 let categoryDeleteMode = false;
 let selectedCategoryIds = new Set();
 let selectedItemIds = new Set();
+let selectionMemories = loadSelectionMemories();
+let memoryPressTimer = null;
+let memoryLongPressTriggered = false;
 let pendingPurchasedUndo = null;
 let pendingPurchasedUndoTimer = null;
 let missionCompleteShown = false;
@@ -32,6 +37,7 @@ let missionCompleteTimer = null;
 saveData(STORAGE_KEYS.items, items);
 saveAppSettings();
 saveFreeMemos();
+saveSelectionMemories();
 MESSAGES.noCategory = "カテゴリなし";
 
 function loadData(key) {
@@ -81,6 +87,47 @@ function saveFreeMemos() {
   saveData(STORAGE_KEYS.freeMemos, freeMemos);
 }
 
+function createEmptySelectionMemories() {
+  return {
+    1: { itemIds: [], memoIds: [] },
+    2: { itemIds: [], memoIds: [] },
+    3: { itemIds: [], memoIds: [] },
+  };
+}
+
+function normalizeSelectionMemorySlot(slot) {
+  return {
+    itemIds: Array.isArray(slot?.itemIds) ? slot.itemIds.filter(id => typeof id === "string") : [],
+    memoIds: Array.isArray(slot?.memoIds) ? slot.memoIds.filter(id => typeof id === "string") : [],
+  };
+}
+
+function normalizeSelectionMemories(raw) {
+  const memories = createEmptySelectionMemories();
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    return memories;
+  }
+
+  ["1", "2", "3"].forEach(slot => {
+    memories[slot] = normalizeSelectionMemorySlot(raw[slot]);
+  });
+  return memories;
+}
+
+function loadSelectionMemories() {
+  const raw = localStorage.getItem(STORAGE_KEYS.selectionMemories);
+  if (!raw) return createEmptySelectionMemories();
+  try {
+    return normalizeSelectionMemories(JSON.parse(raw));
+  } catch {
+    return createEmptySelectionMemories();
+  }
+}
+
+function saveSelectionMemories() {
+  saveData(STORAGE_KEYS.selectionMemories, selectionMemories);
+}
+
 function normalizeFreeMemo(memo) {
   return {
     id: memo.id || generateId(),
@@ -103,6 +150,7 @@ function buildBackupData() {
     items,
     settings: Object.keys(settings).length > 0 ? settings : {},
     freeMemos,
+    selectionMemories,
   };
 }
 
@@ -181,6 +229,21 @@ function validateBackupData(data) {
   if (data.freeMemos !== undefined && !Array.isArray(data.freeMemos)) {
     return "バックアップのフリーメモ情報が不正です。";
   }
+  if (data.selectionMemories !== undefined) {
+    if (typeof data.selectionMemories !== "object" || Array.isArray(data.selectionMemories)) {
+      return "バックアップの対象選択メモリ情報が不正です。";
+    }
+    const invalidMemory = ["1", "2", "3"].some(slot => {
+      const memory = data.selectionMemories[slot];
+      return memory !== undefined &&
+        (!memory || typeof memory !== "object" || Array.isArray(memory) ||
+          (memory.itemIds !== undefined && !Array.isArray(memory.itemIds)) ||
+          (memory.memoIds !== undefined && !Array.isArray(memory.memoIds)));
+    });
+    if (invalidMemory) {
+      return "バックアップの対象選択メモリ情報が不正です。";
+    }
+  }
 
   const invalidCategory = data.categories.some(category => {
     return !category || typeof category !== "object" || !category.id || typeof category.name !== "string" || category.name.trim() === "" || !isValidSortOrder(category.sortOrder);
@@ -222,11 +285,13 @@ function applyBackupData(backup) {
     : {};
 
   freeMemos = backup.freeMemos ? backup.freeMemos.map(normalizeFreeMemo) : [];
+  selectionMemories = normalizeSelectionMemories(backup.selectionMemories);
 
   saveData(STORAGE_KEYS.categories, categories);
   saveItems();
   saveAppSettings();
   saveFreeMemos();
+  saveSelectionMemories();
 
   selectedCategoryIds.clear();
   selectedItemIds.clear();
@@ -339,6 +404,49 @@ function toggleFreeMemoPurchased(id) {
   if (!memo || !memo.selectedForShopping) return;
   memo.purchased = !memo.purchased;
   saveFreeMemos();
+}
+
+function getSelectionMemoryLabel(slot) {
+  return String(slot);
+}
+
+function isSelectionMemoryEmpty(slot) {
+  const memory = selectionMemories[slot];
+  return !memory || (memory.itemIds.length === 0 && memory.memoIds.length === 0);
+}
+
+function saveCurrentSelectionToMemory(slot) {
+  selectionMemories[slot] = {
+    itemIds: items.filter(item => item.selectedForShopping).map(item => item.id),
+    memoIds: freeMemos.filter(memo => memo.selectedForShopping).map(memo => memo.id),
+  };
+  saveSelectionMemories();
+}
+
+function restoreSelectionMemory(slot) {
+  const memory = selectionMemories[slot];
+  if (!memory || isSelectionMemoryEmpty(slot)) {
+    alert(`メモリ${getSelectionMemoryLabel(slot)}は未登録です`);
+    return;
+  }
+
+  const itemIdSet = new Set(memory.itemIds);
+  const memoIdSet = new Set(memory.memoIds);
+
+  items.forEach(item => {
+    item.selectedForShopping = itemIdSet.has(item.id);
+    item.purchased = false;
+  });
+
+  freeMemos.forEach(memo => {
+    memo.selectedForShopping = memoIdSet.has(memo.id);
+    memo.purchased = false;
+  });
+
+  saveItems();
+  saveFreeMemos();
+  resetMissionCompleteEligibility();
+  renderListTab();
 }
 
 function generateId() {
@@ -998,6 +1106,7 @@ function renderAll() {
 function handleShoppingModeChange(mode) {
   shoppingMode = mode;
   shoppingModeHelpOpen = false;
+  selectionMemoryHelpOpen = false;
   if (mode !== "shopping") {
     hideMissionCompletePopup();
   }
@@ -1010,6 +1119,7 @@ function handleShoppingModeChange(mode) {
 function toggleShoppingModeHelp(event) {
   event.stopPropagation();
   shoppingModeHelpOpen = !shoppingModeHelpOpen;
+  selectionMemoryHelpOpen = false;
   renderListTab();
 }
 
@@ -1017,6 +1127,73 @@ function closeShoppingModeHelp() {
   if (!shoppingModeHelpOpen) return;
   shoppingModeHelpOpen = false;
   renderListTab();
+}
+
+function toggleSelectionMemoryHelp(event) {
+  event.stopPropagation();
+  selectionMemoryHelpOpen = !selectionMemoryHelpOpen;
+  shoppingModeHelpOpen = false;
+  renderListTab();
+  if (selectionMemoryHelpOpen) {
+    requestAnimationFrame(positionSelectionMemoryTooltip);
+  }
+}
+
+function closeSelectionMemoryHelp() {
+  if (!selectionMemoryHelpOpen) return;
+  selectionMemoryHelpOpen = false;
+  renderListTab();
+}
+
+function positionSelectionMemoryTooltip() {
+  const trigger = document.querySelector(".selection-memory-help__trigger");
+  const tooltip = document.querySelector(".selection-memory-help__tooltip--open");
+  if (!trigger || !tooltip) return;
+
+  const margin = 12;
+  const triggerRect = trigger.getBoundingClientRect();
+  const tooltipRect = tooltip.getBoundingClientRect();
+  const preferredLeft = triggerRect.left;
+  const maxLeft = window.innerWidth - tooltipRect.width - margin;
+  const left = Math.max(margin, Math.min(preferredLeft, maxLeft));
+
+  tooltip.style.left = `${left}px`;
+  tooltip.style.top = `${triggerRect.bottom + 8}px`;
+}
+
+function handleSelectionMemoryPressStart(slot) {
+  memoryLongPressTriggered = false;
+  if (memoryPressTimer) {
+    clearTimeout(memoryPressTimer);
+  }
+
+  memoryPressTimer = setTimeout(() => {
+    memoryLongPressTriggered = true;
+    memoryPressTimer = null;
+    const label = getSelectionMemoryLabel(slot);
+    if (confirm(`現在の対象選択状態をメモリ${label}に登録しますか？`)) {
+      saveCurrentSelectionToMemory(slot);
+      alert(`メモリ${label}に登録しました`);
+      renderListTab();
+    }
+  }, 650);
+}
+
+function handleSelectionMemoryPressEnd(slot) {
+  if (memoryPressTimer) {
+    clearTimeout(memoryPressTimer);
+    memoryPressTimer = null;
+    if (!memoryLongPressTriggered) {
+      restoreSelectionMemory(slot);
+    }
+  }
+}
+
+function handleSelectionMemoryPressCancel() {
+  if (memoryPressTimer) {
+    clearTimeout(memoryPressTimer);
+    memoryPressTimer = null;
+  }
 }
 
 function handleToggleItemDeleteMode() {
@@ -1460,6 +1637,14 @@ function setupShoppingModeHelp() {
       closeShoppingModeHelp();
     }
   });
+
+  document.addEventListener("click", event => {
+    const helpArea = document.querySelector(".selection-memory-help");
+    if (!selectionMemoryHelpOpen || !helpArea) return;
+    if (!helpArea.contains(event.target)) {
+      closeSelectionMemoryHelp();
+    }
+  });
 }
 
 function renderTabs() {
@@ -1488,6 +1673,41 @@ function renderShoppingModePanelCompact(remainingCount) {
 
   const resetButton = shoppingMode === "select" ? `
       <div class="mode-actions">
+        <div class="selection-memory">
+          <div class="selection-memory__buttons" aria-label="対象選択メモリ">
+            ${["1", "2", "3"].map(slot => `
+              <button
+                type="button"
+                class="selection-memory__btn ${isSelectionMemoryEmpty(slot) ? "" : "selection-memory__btn--saved"}"
+                aria-label="メモリ${getSelectionMemoryLabel(slot)}"
+                onpointerdown="handleSelectionMemoryPressStart('${slot}')"
+                onpointerup="handleSelectionMemoryPressEnd('${slot}')"
+                onpointerleave="handleSelectionMemoryPressCancel()"
+                onpointercancel="handleSelectionMemoryPressCancel()"
+                oncontextmenu="event.preventDefault()"
+              >
+                ${getSelectionMemoryLabel(slot)}
+              </button>
+            `).join("")}
+          </div>
+          <div class="selection-memory-help">
+            <button
+              type="button"
+              class="selection-memory-help__trigger"
+              aria-label="対象選択メモリの説明を表示"
+              aria-expanded="${selectionMemoryHelpOpen ? "true" : "false"}"
+              onclick="toggleSelectionMemoryHelp(event)"
+            >
+              ?
+            </button>
+            <div class="selection-memory-help__tooltip ${selectionMemoryHelpOpen ? "selection-memory-help__tooltip--open" : ""}" role="tooltip">
+              <p>1 2 3は対象選択メモリです。</p>
+              <p>短押し：登録済みの選択状態を呼び出します。</p>
+              <p>長押し：現在の選択状態を登録します。</p>
+              <p>よく買う商品の組み合わせを保存しておくと、次回からワンタッチで選択できます。</p>
+            </div>
+          </div>
+        </div>
         <button type="button" class="btn btn--ghost btn--sm mode-action-btn" onclick="handleResetShoppingSelection()">
           すべて解除
         </button>
