@@ -499,7 +499,7 @@ body.body--purchased-undo-visible .app {
   border-radius: var(--radius-md);
   background: rgba(26, 29, 39, 0.98);
   box-shadow: var(--shadow-md);
-  max-height: min(70vh, 420px);
+  max-height: min(82vh, 620px);
   overflow-y: auto;
   white-space: normal;
   overflow-wrap: anywhere;
@@ -507,6 +507,34 @@ body.body--purchased-undo-visible .app {
 
 .mode-help__tooltip--open {
   display: block;
+}
+
+.preparation-filter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.preparation-filter__label {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.preparation-filter__select {
+  flex: 1;
+  min-width: 0;
+  min-height: 38px;
+  padding: 7px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.82rem;
 }
 
 .mode-actions {
@@ -1470,6 +1498,15 @@ span.free-memo-row__text {
     height: 36px;
     font-size: 1rem;
   }
+}
+
+.free-memo-input--panel .btn,
+.free-memo-input--panel button {
+  min-width: 58px;
+  min-height: 34px;
+  padding: 6px 12px;
+  font-size: 0.75rem;
+  line-height: 1;
 }
 
 /* =========================

@@ -6,7 +6,7 @@ const STORAGE_KEYS = {
   selectionMemories: "shoppingSelectionMemories",
 };
 
-const APP_VERSION = "1.4.20";
+const APP_VERSION = "1.4.21";
 const BACKUP_VERSION = "1.4.0";
 const SHOPPING_TOGGLE_LOCK_MS = 500;
 const MISSION_COUNTDOWN_DISPLAY_MS = 1100;
@@ -46,6 +46,7 @@ let freeMemos = loadFreeMemos();
 let activeTab = "list";
 let appMenuOpen = false;
 let shoppingMode = "shopping";
+let preparationCategoryFilter = "all";
 let shoppingModeHelpOpen = false;
 let categoryLabelSettingHelpOpen = false;
 let itemDeleteMode = false;
@@ -752,6 +753,30 @@ function getSortedItems() {
 
     return a.name.localeCompare(b.name, "ja");
   });
+}
+
+function normalizePreparationCategoryFilter() {
+  if (preparationCategoryFilter === "all" || preparationCategoryFilter === "uncategorized") {
+    return;
+  }
+  if (!categories.some(category => category.id === preparationCategoryFilter)) {
+    preparationCategoryFilter = "all";
+  }
+}
+
+function getFilteredPreparationItems(list = getSortedItems()) {
+  normalizePreparationCategoryFilter();
+  if (preparationCategoryFilter === "all") {
+    return list;
+  }
+  if (preparationCategoryFilter === "uncategorized") {
+    return list.filter(item => !item.categoryId);
+  }
+  return list.filter(item => item.categoryId === preparationCategoryFilter);
+}
+
+function resetPreparationCategoryFilter() {
+  preparationCategoryFilter = "all";
 }
 
 function getRemainingShoppingCount(list = items) {
@@ -1561,6 +1586,9 @@ function renderInitialApp() {
 }
 
 function handleShoppingModeChange(mode) {
+  if (shoppingMode === "select" && mode !== "select") {
+    resetPreparationCategoryFilter();
+  }
   shoppingMode = mode;
   shoppingModeHelpOpen = false;
   if (mode !== "shopping") {
@@ -1582,6 +1610,13 @@ function toggleShoppingModeHelp(event) {
 function closeShoppingModeHelp() {
   if (!shoppingModeHelpOpen) return;
   shoppingModeHelpOpen = false;
+  renderListTab();
+}
+
+function handlePreparationCategoryFilterChange(value) {
+  if (shoppingMode !== "select") return;
+  preparationCategoryFilter = value || "all";
+  normalizePreparationCategoryFilter();
   renderListTab();
 }
 
@@ -1999,37 +2034,49 @@ function handleTogglePurchased(id) {
 }
 
 function handleResetShoppingSelection() {
+  const targetItems = getFilteredPreparationItems();
+  const isFilterActive = preparationCategoryFilter !== "all";
   showConfirm("選択中の対象を全解除しますか？", () => {
-    items.forEach(item => {
+    targetItems.forEach(item => {
       item.selectedForShopping = false;
       item.purchased = false;
     });
-    freeMemos.forEach(memo => {
-      memo.selectedForShopping = false;
-      memo.purchased = false;
-    });
+    if (!isFilterActive) {
+      freeMemos.forEach(memo => {
+        memo.selectedForShopping = false;
+        memo.purchased = false;
+      });
+    }
     saveItems();
-    saveFreeMemos();
+    if (!isFilterActive) {
+      saveFreeMemos();
+    }
     resetMissionCompleteEligibility();
     renderListTab();
-    showToast("対象選択を全解除しました。", "success");
+    showToast(isFilterActive ? "表示中の項目をすべて解除しました" : "対象選択を全解除しました。", "success");
   }, "全解除");
 }
 
 function handleSelectAllShoppingTargets() {
   if (shoppingMode !== "select") return;
+  const targetItems = getFilteredPreparationItems();
+  const isFilterActive = preparationCategoryFilter !== "all";
 
-  items.forEach(item => {
+  targetItems.forEach(item => {
     item.selectedForShopping = true;
   });
-  freeMemos.forEach(memo => {
-    memo.selectedForShopping = true;
-  });
+  if (!isFilterActive) {
+    freeMemos.forEach(memo => {
+      memo.selectedForShopping = true;
+    });
+  }
   saveItems();
-  saveFreeMemos();
+  if (!isFilterActive) {
+    saveFreeMemos();
+  }
   resetMissionCompleteEligibility();
   renderListTab();
-  showToast("対象を全選択しました。", "success");
+  showToast(isFilterActive ? "表示中の項目をすべて選択しました" : "対象を全選択しました。", "success");
 }
 
 function handleAddFreeMemo() {
@@ -2271,9 +2318,10 @@ function renderModeSwitchHelp(remainingCount) {
       <div class="mode-help__tooltip ${shoppingModeHelpOpen ? "mode-help__tooltip--open" : ""}" role="tooltip">
         <p class="mode-help__item"><strong>準備モード</strong><span>${escapeHtml(descriptions.select)}</span></p>
         <p class="mode-help__item"><strong>実行モード</strong><span>${escapeHtml(descriptions.shopping)}</span></p>
+        <p class="mode-help__item"><strong>カテゴリ <span class="mode-help__note">※準備モード時のみ</span></strong><span>表示する項目をカテゴリで絞り込みます。</span></p>
         <p class="mode-help__item"><strong>メモリボタン <span class="mode-help__note">※準備モード時のみ</span></strong><span>1 / 2 / 3 は準備モード用メモリです。<br>短押し：登録済みの選択状態を呼び出します。<br>長押し：現在の選択状態を登録します。<br>よく使う項目の組み合わせを保存しておくと、次回からワンタッチで選択できます。</span></p>
-        <p class="mode-help__item"><strong>全選択 <span class="mode-help__note">※準備モード時のみ</span></strong><span>すべての項目を実行対象にします。</span></p>
-        <p class="mode-help__item"><strong>全解除 <span class="mode-help__note">※準備モード時のみ</span></strong><span>すべての項目を実行対象から外します。</span></p>
+        <p class="mode-help__item"><strong>全選択 <span class="mode-help__note">※準備モード時のみ</span></strong><span>表示中の項目をすべて実行対象にします。</span></p>
+        <p class="mode-help__item"><strong>全解除 <span class="mode-help__note">※準備モード時のみ</span></strong><span>表示中の項目をすべて実行対象から外します。</span></p>
       </div>
     </div>
   `;
@@ -2301,6 +2349,22 @@ function renderAppHeader(remainingCount = 0) {
 
 function renderPreparationControlPanel() {
   if (shoppingMode !== "select") return "";
+  normalizePreparationCategoryFilter();
+  const filterOptions = [
+    `<option value="all" ${preparationCategoryFilter === "all" ? "selected" : ""}>すべて</option>`,
+    ...getSortedCategories().map(category => `
+      <option value="${escapeHtml(category.id)}" ${preparationCategoryFilter === category.id ? "selected" : ""}>${escapeHtml(category.name)}</option>
+    `),
+    `<option value="uncategorized" ${preparationCategoryFilter === "uncategorized" ? "selected" : ""}>未分類</option>`,
+  ].join("");
+  const categoryFilter = `
+      <label class="preparation-filter">
+        <span class="preparation-filter__label">カテゴリ：</span>
+        <select class="preparation-filter__select" aria-label="カテゴリで絞り込み" onchange="handlePreparationCategoryFilterChange(this.value)">
+          ${filterOptions}
+        </select>
+      </label>
+    `;
 
   const resetButton = `
       <div class="mode-actions">
@@ -2342,6 +2406,7 @@ function renderPreparationControlPanel() {
 
   return `
     <div class="mode-panel mode-panel--list">
+      ${categoryFilter}
       ${resetButton}
       ${freeMemoInput}
     </div>
@@ -2355,7 +2420,7 @@ function renderListTab(options = {}) {
   const categoryMap = getCategoryMap();
   const visibleItems = shoppingMode === "shopping"
     ? sortedItems.filter(item => item.selectedForShopping)
-    : sortedItems;
+    : getFilteredPreparationItems(sortedItems);
   const remainingCount = getRemainingShoppingCount(sortedItems) + freeMemos.filter(memo => memo.selectedForShopping && !memo.purchased).length;
   if (activeTab === "list" && renderHeader) {
     renderAppHeader(remainingCount);
@@ -2492,6 +2557,9 @@ function renderListTab(options = {}) {
 }
 
 function handleTabClick(tab) {
+  if (shoppingMode === "select" && (activeTab !== "list" || tab !== "list")) {
+    resetPreparationCategoryFilter();
+  }
   activeTab = tab;
   appMenuOpen = false;
   renderAll();
