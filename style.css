@@ -1163,6 +1163,42 @@ span.free-memo-row__text {
   background: rgba(255, 255, 255, 0.9);
 }
 
+.mission-countdown-effect {
+  position: fixed;
+  left: 50%;
+  top: 42%;
+  z-index: 2100;
+  width: min(58vw, 220px);
+  transform: translate(-50%, -50%) scale(0.94);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.16s ease, transform 0.16s ease;
+}
+
+.mission-countdown-effect--show {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.mission-countdown-effect__image {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 14px;
+  filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.42));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mission-countdown-effect {
+    transition: opacity 0.01s linear;
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  .mission-countdown-effect--show {
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
 @media (max-width: 640px) {
   .app {
     padding: 0 12px 72px;

@@ -6,9 +6,10 @@ const STORAGE_KEYS = {
   selectionMemories: "shoppingSelectionMemories",
 };
 
-const APP_VERSION = "1.4.15";
+const APP_VERSION = "1.4.16";
 const BACKUP_VERSION = "1.4.0";
 const SHOPPING_TOGGLE_LOCK_MS = 500;
+const MISSION_COUNTDOWN_DISPLAY_MS = 1100;
 
 const MESSAGES = {
   noCategory: "カテゴリなし",
@@ -36,6 +37,8 @@ let missionCompleteShown = false;
 let missionCompleteVisible = false;
 let missionCompleteTimers = [];
 let missionRewardPattern = null;
+let missionCountdownPatterns = null;
+let missionCountdownTimer = null;
 let shoppingToggleLockedUntil = 0;
 let shoppingToggleLockTimer = null;
 let pendingShoppingTapAnimation = null;
@@ -831,21 +834,26 @@ function getShoppingCompletionState() {
   const selectedItems = items.filter(item => item.selectedForShopping);
   const selectedMemos = freeMemos.filter(memo => memo.selectedForShopping);
   const totalSelected = selectedItems.length + selectedMemos.length;
+  const remainingUnchecked =
+    selectedItems.filter(item => !item.purchased).length +
+    selectedMemos.filter(memo => !memo.purchased).length;
   const completed =
     totalSelected > 0 &&
     selectedItems.every(item => item.purchased) &&
     selectedMemos.every(memo => memo.purchased);
   const allUnchecked =
     totalSelected > 0 &&
-    selectedItems.every(item => !item.purchased) &&
-    selectedMemos.every(memo => !memo.purchased);
+    remainingUnchecked === totalSelected;
 
-  return { totalSelected, completed, allUnchecked };
+  return { totalSelected, remainingUnchecked, completed, allUnchecked };
 }
 
 function resetMissionRewardIfAllUnchecked() {
-  if (getShoppingCompletionState().allUnchecked) {
+  const state = getShoppingCompletionState();
+  if (state.totalSelected === 0 || state.allUnchecked) {
     missionRewardPattern = null;
+    missionCountdownPatterns = null;
+    hideMissionCountdownEffect();
   }
 }
 
@@ -925,6 +933,7 @@ function scheduleMissionCompleteStep(callback, delay) {
 
 function getNormalMissionCompleteRewardPattern() {
   return {
+    rarity: "normal",
     initialImage: "./complete_n.webp",
     steps: [{ delay: 3000, action: hideMissionCompletePopup }],
   };
@@ -942,6 +951,7 @@ function getMissionCompleteRewardPattern() {
   }
   if (rand < 0.95) {
     return {
+      rarity: "rare",
       initialImage: "./complete_n.webp",
       steps: [
         { delay: 1200, action: () => setMissionCompleteImage("./complete_r.webp") },
@@ -950,6 +960,7 @@ function getMissionCompleteRewardPattern() {
     };
   }
   return {
+    rarity: "superRare",
     initialImage: "./complete_n.webp",
     steps: [
       { delay: 1200, action: () => setMissionCompleteImage("./complete_sr.webp") },
@@ -958,9 +969,128 @@ function getMissionCompleteRewardPattern() {
   };
 }
 
+function drawCountdownRarityForReward(rewardRarity) {
+  const rand = Math.random();
+  if (rewardRarity === "rare") {
+    if (rand < 0.60) return "normal";
+    if (rand < 0.95) return "rare";
+    return "superRare";
+  }
+  if (rewardRarity === "superRare") {
+    if (rand < 0.45) return "normal";
+    if (rand < 0.80) return "rare";
+    return "superRare";
+  }
+  if (rand < 0.94) return "normal";
+  if (rand < 0.99) return "rare";
+  return "superRare";
+}
+
+function drawUpgradedCountdownRarity() {
+  return Math.random() < 0.85 ? "rare" : "superRare";
+}
+
+function getMissionCountdownImage(rarity, remainingNumber) {
+  const prefix = {
+    normal: "n",
+    rare: "r",
+    superRare: "sr",
+  }[rarity] || "n";
+  return `./countdown_${prefix}${remainingNumber}.png`;
+}
+
+function getMissionCountdownPatterns(rewardRarity) {
+  const { totalSelected } = getShoppingCompletionState();
+  if (totalSelected <= 3) return null;
+
+  const patterns = {};
+  let minimumRarity = "normal";
+  [3, 2, 1].forEach(remainingNumber => {
+    let rarity;
+    if (minimumRarity === "superRare") {
+      rarity = "superRare";
+    } else if (minimumRarity === "rare") {
+      rarity = drawUpgradedCountdownRarity();
+    } else {
+      rarity = drawCountdownRarityForReward(rewardRarity);
+    }
+
+    if (rarity === "superRare") {
+      minimumRarity = "superRare";
+    } else if (rarity === "rare") {
+      minimumRarity = "rare";
+    }
+
+    patterns[remainingNumber] = {
+      rarity,
+      image: getMissionCountdownImage(rarity, remainingNumber),
+    };
+  });
+  return patterns;
+}
+
 function prepareMissionRewardForShoppingStart() {
   if (shoppingMode !== "shopping" || missionRewardPattern) return;
   missionRewardPattern = getMissionCompleteRewardPattern();
+  missionCountdownPatterns = getMissionCountdownPatterns(missionRewardPattern.rarity);
+}
+
+function getMissionCountdownElement() {
+  let element = document.getElementById("mission-countdown-effect");
+  if (!element) {
+    element = document.createElement("div");
+    element.id = "mission-countdown-effect";
+    element.className = "mission-countdown-effect";
+    element.setAttribute("role", "status");
+    element.setAttribute("aria-live", "polite");
+    element.innerHTML = `
+      <img src="./countdown_n3.png" alt="" class="mission-countdown-effect__image" />
+    `;
+    document.body.appendChild(element);
+  }
+  return element;
+}
+
+function hideMissionCountdownEffect() {
+  if (missionCountdownTimer) {
+    clearTimeout(missionCountdownTimer);
+    missionCountdownTimer = null;
+  }
+  const element = document.getElementById("mission-countdown-effect");
+  if (element) {
+    element.classList.remove("mission-countdown-effect--show");
+  }
+}
+
+function showMissionCountdownEffect(remainingNumber) {
+  if (shoppingMode !== "shopping") return;
+  const { totalSelected } = getShoppingCompletionState();
+  if (totalSelected <= 3 || ![1, 2, 3].includes(remainingNumber)) return;
+
+  if (!missionCountdownPatterns && missionRewardPattern) {
+    missionCountdownPatterns = getMissionCountdownPatterns(missionRewardPattern.rarity);
+  }
+
+  const pattern = missionCountdownPatterns?.[remainingNumber];
+  if (!pattern) return;
+
+  const element = getMissionCountdownElement();
+  const image = element.querySelector(".mission-countdown-effect__image");
+  if (image) {
+    image.src = pattern.image;
+  }
+
+  if (missionCountdownTimer) {
+    clearTimeout(missionCountdownTimer);
+  }
+  element.classList.remove("mission-countdown-effect--show");
+  requestAnimationFrame(() => {
+    element.classList.add("mission-countdown-effect--show");
+  });
+  missionCountdownTimer = setTimeout(() => {
+    missionCountdownTimer = null;
+    element.classList.remove("mission-countdown-effect--show");
+  }, MISSION_COUNTDOWN_DISPLAY_MS);
 }
 
 function showMissionCompletePopup() {
@@ -970,6 +1100,9 @@ function showMissionCompletePopup() {
   missionCompleteVisible = true;
   if (!missionRewardPattern) {
     missionRewardPattern = getMissionCompleteRewardPattern();
+  }
+  if (!missionCountdownPatterns) {
+    missionCountdownPatterns = getMissionCountdownPatterns(missionRewardPattern.rarity);
   }
   const rewardPattern = missionRewardPattern;
   const element = getMissionCompleteElement();
@@ -1305,6 +1438,7 @@ function handleShoppingModeChange(mode) {
   shoppingModeHelpOpen = false;
   if (mode !== "shopping") {
     hideMissionCompletePopup();
+    hideMissionCountdownEffect();
   }
 
   document.body.classList.toggle("shopping-mode", mode === "shopping");
@@ -1714,6 +1848,9 @@ function handleTogglePurchased(id) {
     if (item.purchased && wasAllUnchecked) {
       prepareMissionRewardForShoppingStart();
     }
+    if (item.purchased) {
+      showMissionCountdownEffect(getShoppingCompletionState().remainingUnchecked);
+    }
     showPurchasedUndo({
       type: "item",
       id,
@@ -1811,6 +1948,9 @@ function handleToggleFreeMemoPurchased(id) {
     queueShoppingTapAnimation("memo", id);
     if (memo.purchased && wasAllUnchecked) {
       prepareMissionRewardForShoppingStart();
+    }
+    if (memo.purchased) {
+      showMissionCountdownEffect(getShoppingCompletionState().remainingUnchecked);
     }
     showPurchasedUndo({
       type: "memo",

@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'shopping-list-v35';
+const CACHE_VERSION = 'shopping-list-v36';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -9,7 +9,16 @@ const ASSETS_TO_CACHE = [
   './icon-512.png',
   './complete_n.webp',
   './complete_r.webp',
-  './complete_sr.webp'
+  './complete_sr.webp',
+  './countdown_n1.png',
+  './countdown_n2.png',
+  './countdown_n3.png',
+  './countdown_r1.png',
+  './countdown_r2.png',
+  './countdown_r3.png',
+  './countdown_sr1.png',
+  './countdown_sr2.png',
+  './countdown_sr3.png'
 ];
 
 // Install event: cache core app files
