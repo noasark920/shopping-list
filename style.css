@@ -459,13 +459,17 @@ body.body--purchased-undo-visible .app {
   top: calc(100% + 8px);
   right: 0;
   z-index: 10;
-  width: min(260px, calc(100vw - 48px));
+  width: min(300px, calc(100vw - 48px));
   display: none;
   padding: 10px 12px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: rgba(26, 29, 39, 0.98);
   box-shadow: var(--shadow-md);
+  max-height: min(70vh, 420px);
+  overflow-y: auto;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .mode-help__tooltip--open {
@@ -517,8 +521,7 @@ body.body--purchased-undo-visible .app {
   -webkit-touch-callout: none;
 }
 
-.selection-memory__btn,
-.selection-memory-help__trigger {
+.selection-memory__btn {
   width: 40px;
   height: 40px;
   min-width: 0;
@@ -557,50 +560,10 @@ body.body--purchased-undo-visible .app {
 }
 
 .selection-memory__btn:hover,
-.selection-memory-help__trigger:hover {
+.selection-memory__btn:hover {
   border-color: rgba(255, 255, 255, 0.18);
   background: var(--color-surface-2);
   color: var(--color-text);
-}
-
-.selection-memory-help {
-  position: relative;
-  flex-shrink: 0;
-}
-
-.selection-memory-help__trigger {
-  font-size: 0.85rem;
-}
-
-.selection-memory-help__tooltip {
-  position: fixed;
-  top: 0;
-  left: 12px;
-  z-index: 10;
-  width: min(300px, calc(100vw - 24px));
-  max-width: calc(100vw - 24px);
-  display: none;
-  padding: 10px 12px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: rgba(26, 29, 39, 0.98);
-  box-shadow: var(--shadow-md);
-  white-space: normal;
-  overflow-wrap: anywhere;
-}
-
-.selection-memory-help__tooltip--open {
-  display: block;
-}
-
-.selection-memory-help__tooltip p {
-  font-size: 0.76rem;
-  line-height: 1.45;
-  color: var(--color-text-muted);
-}
-
-.selection-memory-help__tooltip p + p {
-  margin-top: 5px;
 }
 
 .mode-help__item {
@@ -1291,13 +1254,6 @@ span.free-memo-row__text {
     height: 38px;
     padding: 0;
     font-size: 0.88rem;
-  }
-  .selection-memory-help__trigger {
-    width: 38px;
-    height: 38px;
-    min-width: 0;
-    padding: 0;
-    font-size: 0.8rem;
   }
   .list-table--compact {
     gap: 6px;

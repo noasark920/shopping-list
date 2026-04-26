@@ -7,7 +7,7 @@ const STORAGE_KEYS = {
   missionRewardLastDrawAt: "missionRewardLastDrawAt",
 };
 
-const APP_VERSION = "1.4.11";
+const APP_VERSION = "1.4.12";
 const BACKUP_VERSION = "1.4.0";
 const MISSION_REWARD_COOLDOWN_MS = 5 * 60 * 1000;
 const SHOPPING_TOGGLE_LOCK_MS = 500;
@@ -24,7 +24,6 @@ let activeTab = "list";
 let appMenuOpen = false;
 let shoppingMode = "shopping";
 let shoppingModeHelpOpen = false;
-let selectionMemoryHelpOpen = false;
 let categoryLabelSettingHelpOpen = false;
 let itemDeleteMode = false;
 let categoryDeleteMode = false;
@@ -1300,7 +1299,6 @@ function renderAll() {
 function handleShoppingModeChange(mode) {
   shoppingMode = mode;
   shoppingModeHelpOpen = false;
-  selectionMemoryHelpOpen = false;
   if (mode !== "shopping") {
     hideMissionCompletePopup();
   }
@@ -1313,29 +1311,12 @@ function handleShoppingModeChange(mode) {
 function toggleShoppingModeHelp(event) {
   event.stopPropagation();
   shoppingModeHelpOpen = !shoppingModeHelpOpen;
-  selectionMemoryHelpOpen = false;
   renderListTab();
 }
 
 function closeShoppingModeHelp() {
   if (!shoppingModeHelpOpen) return;
   shoppingModeHelpOpen = false;
-  renderListTab();
-}
-
-function toggleSelectionMemoryHelp(event) {
-  event.stopPropagation();
-  selectionMemoryHelpOpen = !selectionMemoryHelpOpen;
-  shoppingModeHelpOpen = false;
-  renderListTab();
-  if (selectionMemoryHelpOpen) {
-    requestAnimationFrame(positionSelectionMemoryTooltip);
-  }
-}
-
-function closeSelectionMemoryHelp() {
-  if (!selectionMemoryHelpOpen) return;
-  selectionMemoryHelpOpen = false;
   renderListTab();
 }
 
@@ -1364,22 +1345,6 @@ function positionCategoryLabelSettingTooltip() {
   const triggerRect = trigger.getBoundingClientRect();
   const tooltipRect = tooltip.getBoundingClientRect();
   const preferredLeft = triggerRect.right - tooltipRect.width;
-  const maxLeft = window.innerWidth - tooltipRect.width - margin;
-  const left = Math.max(margin, Math.min(preferredLeft, maxLeft));
-
-  tooltip.style.left = `${left}px`;
-  tooltip.style.top = `${triggerRect.bottom + 8}px`;
-}
-
-function positionSelectionMemoryTooltip() {
-  const trigger = document.querySelector(".selection-memory-help__trigger");
-  const tooltip = document.querySelector(".selection-memory-help__tooltip--open");
-  if (!trigger || !tooltip) return;
-
-  const margin = 12;
-  const triggerRect = trigger.getBoundingClientRect();
-  const tooltipRect = tooltip.getBoundingClientRect();
-  const preferredLeft = triggerRect.left;
   const maxLeft = window.innerWidth - tooltipRect.width - margin;
   const left = Math.max(margin, Math.min(preferredLeft, maxLeft));
 
@@ -1908,14 +1873,6 @@ function setupShoppingModeHelp() {
       closeShoppingModeHelp();
     }
   });
-
-  document.addEventListener("click", event => {
-    const helpArea = document.querySelector(".selection-memory-help");
-    if (!selectionMemoryHelpOpen || !helpArea) return;
-    if (!helpArea.contains(event.target)) {
-      closeSelectionMemoryHelp();
-    }
-  });
 }
 
 function renderTabs() {
@@ -1982,23 +1939,6 @@ function renderShoppingModePanelCompact(remainingCount) {
               </button>
             `).join("")}
           </div>
-          <div class="selection-memory-help">
-            <button
-              type="button"
-              class="selection-memory-help__trigger"
-              aria-label="対象選択メモリの説明を表示"
-              aria-expanded="${selectionMemoryHelpOpen ? "true" : "false"}"
-              onclick="toggleSelectionMemoryHelp(event)"
-            >
-              ?
-            </button>
-            <div class="selection-memory-help__tooltip ${selectionMemoryHelpOpen ? "selection-memory-help__tooltip--open" : ""}" role="tooltip">
-              <p>1 2 3は対象選択メモリです。</p>
-              <p>短押し：登録済みの選択状態を呼び出します。</p>
-              <p>長押し：現在の選択状態を登録します。</p>
-              <p>よく買う商品の組み合わせを保存しておくと、次回からワンタッチで選択できます。</p>
-            </div>
-          </div>
         </div>
         <div class="mode-action-buttons">
           <button type="button" class="btn btn--ghost btn--sm mode-action-btn" onclick="handleSelectAllShoppingTargets()">
@@ -2043,6 +1983,9 @@ function renderShoppingModePanelCompact(remainingCount) {
           <div class="mode-help__tooltip ${shoppingModeHelpOpen ? "mode-help__tooltip--open" : ""}" role="tooltip">
             <p class="mode-help__item"><strong>対象選択モード</strong><span>${escapeHtml(descriptions.select)}</span></p>
             <p class="mode-help__item"><strong>買い物モード</strong><span>${escapeHtml(descriptions.shopping)}</span></p>
+            <p class="mode-help__item"><strong>メモリボタン</strong><span>1 / 2 / 3 は対象選択メモリです。<br>短押し：登録済みの選択状態を呼び出します。<br>長押し：現在の選択状態を登録します。<br>よく買う商品の組み合わせを保存しておくと、次回からワンタッチで選択できます。</span></p>
+            <p class="mode-help__item"><strong>全選択</strong><span>すべての商品を買い物対象にします。</span></p>
+            <p class="mode-help__item"><strong>全解除</strong><span>すべての商品を買い物対象から外します。</span></p>
           </div>
         </div>
       </div>

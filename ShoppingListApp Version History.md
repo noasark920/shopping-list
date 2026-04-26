@@ -521,3 +521,11 @@ PWA更新反映の安定性も強化し、実運用品質を高めた版。
 - ハンバーガーメニュー最下部にアプリVersionを表示
 - APP_VERSION 定数でVersion表示を一元管理
 - service-worker cache version を v31 に更新
+
+## v1.4.12 Target Selection Help Consolidation
+
+### Completed
+- Removed the separate memory help button from the target selection controls.
+- Integrated memory button explanations into the main help tooltip.
+- Added explanations for 全選択 and 全解除.
+- Improved compact mobile layout so memory buttons and bulk selection controls fit better in one row.
