@@ -6,7 +6,7 @@ const STORAGE_KEYS = {
   selectionMemories: "shoppingSelectionMemories",
 };
 
-const APP_VERSION = "1.4.17";
+const APP_VERSION = "1.4.18";
 const BACKUP_VERSION = "1.4.0";
 const SHOPPING_TOGGLE_LOCK_MS = 500;
 const MISSION_COUNTDOWN_DISPLAY_MS = 1100;
@@ -263,7 +263,7 @@ function validateBackupData(data) {
   }
   if (data.selectionMemories !== undefined) {
     if (typeof data.selectionMemories !== "object" || Array.isArray(data.selectionMemories)) {
-      return "バックアップの対象選択メモリ情報が不正です。";
+      return "バックアップの準備モード用メモリ情報が不正です。";
     }
     const invalidMemory = ["1", "2", "3"].some(slot => {
       const memory = data.selectionMemories[slot];
@@ -274,7 +274,7 @@ function validateBackupData(data) {
           (memory.name !== undefined && typeof memory.name !== "string"));
     });
     if (invalidMemory) {
-      return "バックアップの対象選択メモリ情報が不正です。";
+      return "バックアップの準備モード用メモリ情報が不正です。";
     }
   }
 
@@ -1269,7 +1269,7 @@ function openEditCategoryModal(id) {
 
 function openAddItemModal() {
   const form = document.getElementById("item-form");
-  document.getElementById("item-modal-title").textContent = "商品を追加";
+  document.getElementById("item-modal-title").textContent = "項目を追加";
   form.dataset.mode = "add";
   delete form.dataset.editId;
   document.getElementById("item-name").value = "";
@@ -1283,7 +1283,7 @@ function openEditItemModal(id) {
   if (!item) return;
 
   const form = document.getElementById("item-form");
-  document.getElementById("item-modal-title").textContent = "商品を編集";
+  document.getElementById("item-modal-title").textContent = "項目を編集";
   form.dataset.mode = "edit";
   form.dataset.editId = id;
   document.getElementById("item-name").value = item.name;
@@ -1343,7 +1343,7 @@ function renderCategoriesTab() {
         ` : `<div class="data-row__drag-handle" title="ドラッグして並び替え" draggable="true" ondragstart="handleDragStart(event, '${category.id}')">⋮⋮</div>`}
         <div class="data-row__main">
           <span class="data-row__name">${escapeHtml(category.name)}</span>
-          <span class="data-row__sub">${usageCount}件の商品で使用中</span>
+          <span class="data-row__sub">${usageCount}件の項目で使用中</span>
         </div>
         <div class="data-row__actions">
           <button class="btn btn--icon btn--edit" onclick="handleEditCategory('${category.id}')" title="編集" ${categoryDeleteMode ? "disabled" : ""}>✏️</button>
@@ -1375,7 +1375,7 @@ function renderItemsToolbar(selectedCount) {
           キャンセル
         </button>
         <button type="button" class="btn btn--danger btn--sm" onclick="handleBulkDeleteItems()" ${selectedCount === 0 ? "disabled" : ""}>
-          選択した商品を削除
+          選択した項目を削除
         </button>
       </div>
       <div class="bulk-toolbar__count">${selectedCount}件選択中</div>
@@ -1392,7 +1392,7 @@ function renderItemsTab() {
     container.innerHTML = `
       <div class="empty-state">
         <div class="empty-state__icon">📦</div>
-        <p>商品がまだ登録されていません。</p>
+        <p>項目がまだ登録されていません。</p>
       </div>
     `;
     return;
@@ -1570,7 +1570,7 @@ function parseBulkItems(raw) {
 
     const [name, categoryName] = parts;
     if (!name) {
-      skipped.push(`行${index + 1}: 商品名が空です`);
+      skipped.push(`行${index + 1}: 項目名が空です`);
       return;
     }
 
@@ -1634,7 +1634,7 @@ function closeCategoryBulkModal() {
 function handleBulkAdd() {
   const { valid, skipped } = parseBulkItems(document.getElementById("bulk-text").value);
   if (valid.length === 0) {
-    showToast("登録できる商品がありません。", "error");
+    showToast("登録できる項目がありません。", "error");
     return;
   }
 
@@ -1727,7 +1727,7 @@ function handleEditCategory(id) {
 function handleDeleteCategory(id) {
   showConfirm("このカテゴリを削除しますか？", () => {
     if (!deleteCategory(id)) {
-      showToast("商品に使用中のカテゴリは削除できません。", "error");
+      showToast("項目に使用中のカテゴリは削除できません。", "error");
       return;
     }
     renderAll();
@@ -1761,10 +1761,10 @@ function handleEditItem(id) {
 }
 
 function handleDeleteItem(id) {
-  showConfirm("この商品を削除しますか？", () => {
+  showConfirm("この項目を削除しますか？", () => {
     deleteItem(id);
     renderAll();
-    showToast("商品を削除しました。", "success");
+    showToast("項目を削除しました。", "success");
   });
 }
 
@@ -1772,11 +1772,11 @@ function handleBulkDeleteItems() {
   const ids = [...selectedItemIds];
   if (ids.length === 0) return;
 
-  showConfirm(`選択した${ids.length}件の商品を削除しますか？`, () => {
+  showConfirm(`選択した${ids.length}件の項目を削除しますか？`, () => {
     const deletedCount = deleteItems(ids);
     itemDeleteMode = false;
     renderAll();
-    showToast(`${deletedCount}件の商品を削除しました。`, "success");
+    showToast(`${deletedCount}件の項目を削除しました。`, "success");
   });
 }
 
@@ -2017,25 +2017,25 @@ function setupForms() {
     const categoryId = document.getElementById("item-category").value;
 
     if (!name) {
-      showToast("商品名を入力してください。", "error");
+      showToast("項目名を入力してください。", "error");
       return;
     }
 
     if (form.dataset.mode === "add") {
       const sortOrder = getNextSortOrder(items);
       if (!addItem(name, categoryId, sortOrder)) {
-        showToast("商品を追加できませんでした。", "error");
+        showToast("項目を追加できませんでした。", "error");
         return;
       }
-      showToast("商品を追加しました。", "success");
+      showToast("項目を追加しました。", "success");
     } else {
       const item = items.find(entry => entry.id === form.dataset.editId);
       const sortOrder = item ? item.sortOrder : getNextSortOrder(items);
       if (!updateItem(form.dataset.editId, name, categoryId, sortOrder)) {
-        showToast("商品を更新できませんでした。", "error");
+        showToast("項目を更新できませんでした。", "error");
         return;
       }
-      showToast("商品を更新しました。", "success");
+      showToast("項目を更新しました。", "success");
     }
 
     closeModal("item-modal");
@@ -2103,18 +2103,84 @@ function renderTabs() {
   if (appVersionLabel) {
     appVersionLabel.textContent = `Ver.${APP_VERSION}`;
   }
+  renderAppHeader(getCurrentRemainingCount());
 }
 
-function renderShoppingModePanelCompact(remainingCount) {
+function getCurrentRemainingCount() {
+  return getRemainingShoppingCount(getSortedItems()) + freeMemos.filter(memo => memo.selectedForShopping && !memo.purchased).length;
+}
+
+function renderModeSwitchHelp(remainingCount) {
   const descriptions = {
-    select: "今回の買い物対象を選ぶモード",
-    shopping: "選択した商品の購入状況をチェックするモード",
+    select: "今回使う項目を選ぶモードです。",
+    shopping: "選択した項目を確認しながらチェックするモードです。",
   };
 
-  const resetButton = shoppingMode === "select" ? `
+  return `
+    <div class="mode-switch mode-switch--list" role="tablist" aria-label="チェックリストモード切替">
+      <button
+        type="button"
+        class="btn btn--ghost mode-switch__btn mode-switch__btn--compact ${shoppingMode === "select" ? "mode-switch__btn--active" : ""}"
+        onclick="handleShoppingModeChange('select')"
+      >
+        <span class="mode-switch__label">準備モード</span>
+      </button>
+      <button
+        type="button"
+        class="btn btn--ghost mode-switch__btn mode-switch__btn--compact ${shoppingMode === "shopping" ? "mode-switch__btn--active" : ""}"
+        onclick="handleShoppingModeChange('shopping')"
+      >
+        <span class="mode-switch__label">実行モード <span class="mode-switch__count">(${remainingCount})</span></span>
+      </button>
+    </div>
+    <div class="mode-help">
+      <button
+        type="button"
+        class="mode-help__trigger"
+        aria-label="モードの説明を表示"
+        aria-expanded="${shoppingModeHelpOpen ? "true" : "false"}"
+        onclick="toggleShoppingModeHelp(event)"
+      >
+        ?
+      </button>
+      <div class="mode-help__tooltip ${shoppingModeHelpOpen ? "mode-help__tooltip--open" : ""}" role="tooltip">
+        <p class="mode-help__item"><strong>準備モード</strong><span>${escapeHtml(descriptions.select)}</span></p>
+        <p class="mode-help__item"><strong>実行モード</strong><span>${escapeHtml(descriptions.shopping)}</span></p>
+        <p class="mode-help__item"><strong>メモリボタン <span class="mode-help__note">※準備モード時のみ</span></strong><span>1 / 2 / 3 は準備モード用メモリです。<br>短押し：登録済みの選択状態を呼び出します。<br>長押し：現在の選択状態を登録します。<br>よく使う項目の組み合わせを保存しておくと、次回からワンタッチで選択できます。</span></p>
+        <p class="mode-help__item"><strong>全選択 <span class="mode-help__note">※準備モード時のみ</span></strong><span>すべての項目を実行対象にします。</span></p>
+        <p class="mode-help__item"><strong>全解除 <span class="mode-help__note">※準備モード時のみ</span></strong><span>すべての項目を実行対象から外します。</span></p>
+      </div>
+    </div>
+  `;
+}
+
+function renderAppHeader(remainingCount = 0) {
+  const headerContent = document.getElementById("appHeaderContent");
+  if (!headerContent) return;
+
+  if (activeTab === "items") {
+    headerContent.className = "app-header__content app-header__content--title";
+    headerContent.innerHTML = '<h1 class="app-header__title">項目一覧</h1>';
+    return;
+  }
+
+  if (activeTab === "categories") {
+    headerContent.className = "app-header__content app-header__content--title";
+    headerContent.innerHTML = '<h1 class="app-header__title">カテゴリ一覧</h1>';
+    return;
+  }
+
+  headerContent.className = "app-header__content app-header__content--modes";
+  headerContent.innerHTML = renderModeSwitchHelp(remainingCount);
+}
+
+function renderPreparationControlPanel() {
+  if (shoppingMode !== "select") return "";
+
+  const resetButton = `
       <div class="mode-actions">
         <div class="selection-memory">
-          <div class="selection-memory__buttons" aria-label="対象選択メモリ">
+          <div class="selection-memory__buttons" aria-label="準備モード用メモリ">
             ${["1", "2", "3"].map(slot => `
               <button
                 type="button"
@@ -2141,52 +2207,16 @@ function renderShoppingModePanelCompact(remainingCount) {
           </button>
         </div>
       </div>
-    ` : "";
-  const freeMemoInput = shoppingMode === "select" ? `
+    `;
+  const freeMemoInput = `
       <div class="free-memo-input free-memo-input--panel">
         <input id="free-memo-input" type="text" placeholder="フリーメモを入力" maxlength="100" onkeydown="if(event.key==='Enter') handleAddFreeMemo()" />
         <button class="btn btn--primary btn--sm" onclick="handleAddFreeMemo()">追加</button>
       </div>
-    ` : "";
+    `;
 
   return `
     <div class="mode-panel mode-panel--list">
-      <div class="mode-panel__top">
-        <div class="mode-switch mode-switch--list" role="tablist" aria-label="買い物リストモード切替">
-          <button
-            type="button"
-            class="btn btn--ghost mode-switch__btn mode-switch__btn--compact ${shoppingMode === "select" ? "mode-switch__btn--active" : ""}"
-            onclick="handleShoppingModeChange('select')"
-          >
-            <span class="mode-switch__label">対象選択モード</span>
-          </button>
-          <button
-            type="button"
-            class="btn btn--ghost mode-switch__btn mode-switch__btn--compact ${shoppingMode === "shopping" ? "mode-switch__btn--active" : ""}"
-            onclick="handleShoppingModeChange('shopping')"
-          >
-            <span class="mode-switch__label">買い物モード <span class="mode-switch__count">(${remainingCount})</span></span>
-          </button>
-        </div>
-        <div class="mode-help">
-          <button
-            type="button"
-            class="mode-help__trigger"
-            aria-label="モードの説明を表示"
-            aria-expanded="${shoppingModeHelpOpen ? "true" : "false"}"
-            onclick="toggleShoppingModeHelp(event)"
-          >
-            ?
-          </button>
-          <div class="mode-help__tooltip ${shoppingModeHelpOpen ? "mode-help__tooltip--open" : ""}" role="tooltip">
-            <p class="mode-help__item"><strong>対象選択モード</strong><span>${escapeHtml(descriptions.select)}</span></p>
-            <p class="mode-help__item"><strong>買い物モード</strong><span>${escapeHtml(descriptions.shopping)}</span></p>
-            <p class="mode-help__item"><strong>メモリボタン <span class="mode-help__note">※対象選択モード時のみ</span></strong><span>1 / 2 / 3 は対象選択メモリです。<br>短押し：登録済みの選択状態を呼び出します。<br>長押し：現在の選択状態を登録します。<br>よく買う商品の組み合わせを保存しておくと、次回からワンタッチで選択できます。</span></p>
-            <p class="mode-help__item"><strong>全選択 <span class="mode-help__note">※対象選択モード時のみ</span></strong><span>すべての商品を買い物対象にします。</span></p>
-            <p class="mode-help__item"><strong>全解除 <span class="mode-help__note">※対象選択モード時のみ</span></strong><span>すべての商品を買い物対象から外します。</span></p>
-          </div>
-        </div>
-      </div>
       ${resetButton}
       ${freeMemoInput}
     </div>
@@ -2201,6 +2231,9 @@ function renderListTab() {
     ? sortedItems.filter(item => item.selectedForShopping)
     : sortedItems;
   const remainingCount = getRemainingShoppingCount(sortedItems) + freeMemos.filter(memo => memo.selectedForShopping && !memo.purchased).length;
+  if (activeTab === "list") {
+    renderAppHeader(remainingCount);
+  }
   const visibleMemos = shoppingMode === "shopping"
     ? freeMemos.filter(memo => memo.selectedForShopping)
     : freeMemos;
@@ -2209,10 +2242,10 @@ function renderListTab() {
 
   if (sortedItems.length === 0 && freeMemos.length === 0) {
     container.innerHTML = `
-      ${renderShoppingModePanelCompact(0)}
+      ${renderPreparationControlPanel()}
       <div class="empty-state">
         <div class="empty-state__icon">🧾</div>
-        <p>商品管理から商品を追加すると、買い物リストで対象選択できるようになります。</p>
+        <p>項目管理から項目を追加すると、項目リストで準備できるようになります。</p>
       </div>
     `;
     return;
@@ -2220,16 +2253,15 @@ function renderListTab() {
 
   if (shoppingMode === "shopping" && displayItems.length === 0 && displayMemos.length === 0) {
     container.innerHTML = `
-      ${renderShoppingModePanelCompact(remainingCount)}
       <div class="empty-state">
         <div class="empty-state__icon">✅</div>
-        <p>対象選択モードで今回買う商品を選んでください。</p>
+        <p>準備モードで今回使う項目を選んでください。</p>
       </div>
     `;
     return;
   }
 
-  let html = renderShoppingModePanelCompact(remainingCount);
+  let html = renderPreparationControlPanel();
 
   if (displayMemos.length > 0) {
     html += '<div class="free-memo-list">';

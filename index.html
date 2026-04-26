@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>買い物リストアプリ</title>
+  <title>チェックリスト</title>
   <meta
     name="description"
-    content="カテゴリと商品を管理しながら、今回の買い物対象と購入済み状態を分けて扱える買い物リストアプリです。"
+    content="カテゴリと項目を管理しながら、今回使う項目を選んで進行状況をチェックできるチェックリストです。"
   />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -18,17 +18,13 @@
   <meta name="theme-color" content="#002D71" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <meta name="apple-mobile-web-app-title" content="買い物リスト" />
+  <meta name="apple-mobile-web-app-title" content="チェックリスト" />
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="manifest" href="manifest.webmanifest" />
 </head>
 <body>
   <div class="app">
     <header class="app-header">
-      <div class="app-header__brand">
-        <span class="app-header__icon" aria-hidden="true">🛒</span>
-        <h1 class="app-header__title">買い物リストアプリ</h1>
-      </div>
       <div class="app-menu">
         <button
           id="menu-toggle-btn"
@@ -55,7 +51,7 @@
               role="menuitem"
               onclick="handleTabClick('list')"
             >
-              買い物リスト
+              項目リスト
             </button>
             <button
               id="menu-items"
@@ -65,7 +61,7 @@
               role="menuitem"
               onclick="handleTabClick('items')"
             >
-              商品管理
+              項目管理
             </button>
             <button
               id="menu-categories"
@@ -103,7 +99,7 @@
                 type="checkbox"
                 onchange="handleToggleMovePurchasedToBottomSetting(this.checked)"
               />
-              <span>購入済みを下へ移動</span>
+              <span>完了済みを下へ移動</span>
             </label>
             <label class="app-menu__setting" role="menuitem">
               <input
@@ -111,12 +107,12 @@
                 type="checkbox"
                 onchange="handleToggleProductListTwoColumnSetting(this.checked)"
               />
-              <span>商品リストを2列表示</span>
+              <span>項目リストを2列表示</span>
             </label>
           </div>
           <div id="category-label-setting-tooltip" class="app-menu__setting-tooltip" role="tooltip">
-            対象選択モード・買い物モードの商品にカテゴリ名を表示します。<br />
-            商品管理では、確認のため常にカテゴリ名を表示します。
+            準備モード・実行モードの項目にカテゴリ名を表示します。<br />
+            項目管理では、確認のため常にカテゴリ名を表示します。
           </div>
           <div class="app-menu__section">
             <div class="app-menu__section-title">データ管理</div>
@@ -142,6 +138,7 @@
           <div id="appVersionLabel" class="app-menu__version" aria-label="アプリバージョン"></div>
         </div>
       </div>
+      <div id="appHeaderContent" class="app-header__content"></div>
     </header>
 
     <section id="panel-list" class="tab-panel tab-panel--active" role="tabpanel" aria-labelledby="menu-list">
@@ -150,7 +147,6 @@
 
     <section id="panel-items" class="tab-panel" role="tabpanel" aria-labelledby="menu-items">
       <div class="panel-header">
-        <span class="panel-header__title">商品一覧</span>
         <div class="panel-header__actions management-actions">
           <button id="bulk-add-btn" class="btn btn--ghost btn--sm" onclick="openBulkAddModal()">
             一括追加
@@ -159,7 +155,7 @@
             一括削除
           </button>
           <button id="add-item-btn" class="btn btn--primary" onclick="openAddItemModal()">
-            商品を追加
+            項目を追加
           </button>
         </div>
       </div>
@@ -168,7 +164,6 @@
 
     <section id="panel-categories" class="tab-panel" role="tabpanel" aria-labelledby="menu-categories">
       <div class="panel-header">
-        <span class="panel-header__title">カテゴリ一覧</span>
         <div class="panel-header__actions management-actions">
           <button id="category-bulk-open-btn" class="btn btn--ghost btn--sm" onclick="openCategoryBulkModal()">
             一括追加
@@ -194,7 +189,7 @@
       <form id="cat-form" novalidate>
         <div class="form-group">
           <label for="cat-name">カテゴリ名</label>
-          <input id="cat-name" type="text" placeholder="例: 野菜" maxlength="50" required />
+          <input id="cat-name" type="text" placeholder="例: 買い物" maxlength="50" required />
         </div>
         <div class="modal__actions">
           <button type="button" class="btn btn--ghost" onclick="closeModal('cat-modal')">キャンセル</button>
@@ -206,10 +201,10 @@
 
   <div id="item-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="item-modal-title">
     <div class="modal__box">
-      <h2 id="item-modal-title" class="modal__title">商品を追加</h2>
+      <h2 id="item-modal-title" class="modal__title">項目を追加</h2>
       <form id="item-form" novalidate>
         <div class="form-group">
-          <label for="item-name">商品名</label>
+          <label for="item-name">項目名</label>
           <input id="item-name" type="text" placeholder="例: 牛乳" maxlength="80" required />
         </div>
         <div class="form-group">
@@ -238,12 +233,12 @@
 
   <div id="bulk-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="bulk-modal-title">
     <div class="modal__box modal__box--lg">
-      <h2 id="bulk-modal-title" class="modal__title">商品を一括追加</h2>
-      <p class="modal__desc">1行ごとに1商品を入力してください。</p>
-      <p class="modal__format"><code>商品名,カテゴリ名</code></p>
+      <h2 id="bulk-modal-title" class="modal__title">項目を一括追加</h2>
+      <p class="modal__desc">1行ごとに1項目を入力してください。</p>
+      <p class="modal__format"><code>項目名,カテゴリ名</code></p>
       <div class="form-group">
-        <label for="bulk-text">商品リスト</label>
-        <textarea id="bulk-text" class="bulk-textarea" rows="10" placeholder="牛乳,乳製品&#10;卵,冷蔵&#10;トイレットペーパー,日用品"></textarea>
+        <label for="bulk-text">項目リスト</label>
+        <textarea id="bulk-text" class="bulk-textarea" rows="10" placeholder="牛乳,買い物&#10;卵,買い物&#10;トイレットペーパー,買い物"></textarea>
       </div>
       <div class="modal__actions">
         <button type="button" class="btn btn--ghost" onclick="closeModal('bulk-modal')">キャンセル</button>
@@ -259,7 +254,7 @@
       <p class="modal__format"><code>カテゴリ名</code></p>
       <div class="form-group">
         <label for="category-bulk-text">カテゴリリスト</label>
-        <textarea id="category-bulk-text" class="bulk-textarea" rows="8" placeholder="野菜&#10;肉・魚&#10;日用品"></textarea>
+        <textarea id="category-bulk-text" class="bulk-textarea" rows="8" placeholder="買い物&#10;持ち物&#10;タスク"></textarea>
       </div>
       <div class="modal__actions">
         <button type="button" class="btn btn--ghost" onclick="closeCategoryBulkModal()">キャンセル</button>
