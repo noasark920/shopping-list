@@ -6,10 +6,34 @@ const STORAGE_KEYS = {
   selectionMemories: "shoppingSelectionMemories",
 };
 
-const APP_VERSION = "1.4.18";
+const APP_VERSION = "1.4.19";
 const BACKUP_VERSION = "1.4.0";
 const SHOPPING_TOGGLE_LOCK_MS = 500;
 const MISSION_COUNTDOWN_DISPLAY_MS = 1100;
+const SAMPLE_CATEGORY_NAMES = ["買い物", "持ち物", "タスク"];
+const SAMPLE_ITEM_NAMES = [
+  "バナナ",
+  "りんご",
+  "ブロッコリー",
+  "トマト",
+  "玉ねぎ",
+  "にんじん",
+  "きのこ",
+  "鶏むね肉",
+  "豚バラ肉",
+  "魚",
+  "卵",
+  "牛乳",
+  "豆腐",
+  "納豆",
+  "ヨーグルト",
+  "味噌",
+  "ポン酢",
+  "麦茶",
+  "洗濯洗剤",
+  "トイレットペーパー",
+];
+const SAMPLE_ITEM_CATEGORY_NAME = "買い物";
 
 const MESSAGES = {
   noCategory: "カテゴリなし",
@@ -42,6 +66,8 @@ let missionCountdownTimer = null;
 let shoppingToggleLockedUntil = 0;
 let shoppingToggleLockTimer = null;
 let pendingShoppingTapAnimation = null;
+let sampleCategoryRegistrationInProgress = false;
+let sampleItemRegistrationInProgress = false;
 
 saveData(STORAGE_KEYS.items, items);
 saveAppSettings();
@@ -567,6 +593,19 @@ function addCategory(name, sortOrder) {
   });
   saveData(STORAGE_KEYS.categories, categories);
   return true;
+}
+
+function getCategoryByName(name) {
+  const normalizedName = normalizeName(name);
+  return categories.find(category => normalizeName(category.name) === normalizedName) || null;
+}
+
+function ensureCategoryByName(name) {
+  const existing = getCategoryByName(name);
+  if (existing) return existing;
+
+  addCategory(name, getNextSortOrder(categories));
+  return getCategoryByName(name);
 }
 
 function updateCategory(id, name, sortOrder) {
@@ -1292,6 +1331,64 @@ function openEditItemModal(id) {
   document.getElementById("item-name").focus();
 }
 
+function renderSampleCategoryButton() {
+  return `
+    <button type="button" class="btn btn--primary empty-state__action" onclick="handleRegisterSampleCategories(this)">
+      おすすめカテゴリを登録する
+    </button>
+  `;
+}
+
+function renderSampleItemButton() {
+  return `
+    <button type="button" class="btn btn--primary empty-state__action" onclick="handleRegisterSampleItems(this)">
+      サンプル項目を登録する
+    </button>
+  `;
+}
+
+function handleRegisterSampleCategories(button) {
+  if (sampleCategoryRegistrationInProgress || categories.length > 0) return;
+  sampleCategoryRegistrationInProgress = true;
+  if (button) button.disabled = true;
+
+  let nextSortOrder = getNextSortOrder(categories);
+  SAMPLE_CATEGORY_NAMES.forEach(name => {
+    if (!categoryExistsByName(name)) {
+      addCategory(name, nextSortOrder);
+      nextSortOrder += 10;
+    }
+  });
+
+  sampleCategoryRegistrationInProgress = false;
+  renderAll();
+  showToast("3件のカテゴリを登録しました", "success");
+}
+
+function handleRegisterSampleItems(button) {
+  if (sampleItemRegistrationInProgress || items.length > 0) return;
+  sampleItemRegistrationInProgress = true;
+  if (button) button.disabled = true;
+
+  const category = ensureCategoryByName(SAMPLE_ITEM_CATEGORY_NAME);
+  if (!category) {
+    sampleItemRegistrationInProgress = false;
+    if (button) button.disabled = false;
+    showToast("サンプル項目を登録できませんでした。", "error");
+    return;
+  }
+
+  let nextSortOrder = getNextSortOrder(items);
+  SAMPLE_ITEM_NAMES.forEach(name => {
+    addItem(name, category.id, nextSortOrder);
+    nextSortOrder += 10;
+  });
+
+  sampleItemRegistrationInProgress = false;
+  renderAll();
+  showToast("20件の項目を登録しました", "success");
+}
+
 function renderCategoriesTab() {
   const container = document.getElementById("categories-content");
   const sortedCategories = getSortedCategories();
@@ -1301,6 +1398,7 @@ function renderCategoriesTab() {
       <div class="empty-state">
         <div class="empty-state__icon">📁</div>
         <p>カテゴリがまだ登録されていません。</p>
+        ${renderSampleCategoryButton()}
       </div>
     `;
     return;
@@ -1393,6 +1491,7 @@ function renderItemsTab() {
       <div class="empty-state">
         <div class="empty-state__icon">📦</div>
         <p>項目がまだ登録されていません。</p>
+        ${renderSampleItemButton()}
       </div>
     `;
     return;
@@ -2246,6 +2345,7 @@ function renderListTab() {
       <div class="empty-state">
         <div class="empty-state__icon">🧾</div>
         <p>項目管理から項目を追加すると、項目リストで準備できるようになります。</p>
+        ${renderSampleItemButton()}
       </div>
     `;
     return;
@@ -2256,12 +2356,23 @@ function renderListTab() {
       <div class="empty-state">
         <div class="empty-state__icon">✅</div>
         <p>準備モードで今回使う項目を選んでください。</p>
+        ${sortedItems.length === 0 ? renderSampleItemButton() : ""}
       </div>
     `;
     return;
   }
 
   let html = renderPreparationControlPanel();
+
+  if (sortedItems.length === 0) {
+    html += `
+      <div class="empty-state">
+        <div class="empty-state__icon">🧾</div>
+        <p>項目管理から項目を追加すると、項目リストで準備できるようになります。</p>
+        ${renderSampleItemButton()}
+      </div>
+    `;
+  }
 
   if (displayMemos.length > 0) {
     html += '<div class="free-memo-list">';

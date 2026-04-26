@@ -917,6 +917,10 @@ span.free-memo-row__text {
 
 .empty-state__icon { font-size: 3rem; }
 
+.empty-state__action {
+  margin-top: 2px;
+}
+
 .modal {
   display: none;
   position: fixed;
