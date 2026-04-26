@@ -6,7 +6,7 @@ const STORAGE_KEYS = {
   selectionMemories: "shoppingSelectionMemories",
 };
 
-const APP_VERSION = "1.4.16";
+const APP_VERSION = "1.4.17";
 const BACKUP_VERSION = "1.4.0";
 const SHOPPING_TOGGLE_LOCK_MS = 500;
 const MISSION_COUNTDOWN_DISPLAY_MS = 1100;
@@ -68,6 +68,7 @@ function loadSettings() {
     return {
       showCategoryLabelsInShoppingList: false,
       movePurchasedToBottom: true,
+      productListTwoColumn: true,
     };
   }
   try {
@@ -76,17 +77,20 @@ function loadSettings() {
       return {
         showCategoryLabelsInShoppingList: false,
         movePurchasedToBottom: true,
+        productListTwoColumn: true,
       };
     }
     return {
       ...parsed,
       showCategoryLabelsInShoppingList: Boolean(parsed.showCategoryLabelsInShoppingList),
       movePurchasedToBottom: parsed.movePurchasedToBottom !== false,
+      productListTwoColumn: parsed.productListTwoColumn !== false,
     };
   } catch {
     return {
       showCategoryLabelsInShoppingList: false,
       movePurchasedToBottom: true,
+      productListTwoColumn: true,
     };
   }
 }
@@ -314,8 +318,9 @@ function applyBackupData(backup) {
       ...backup.settings,
       showCategoryLabelsInShoppingList: Boolean(backup.settings.showCategoryLabelsInShoppingList),
       movePurchasedToBottom: backup.settings.movePurchasedToBottom !== false,
+      productListTwoColumn: backup.settings.productListTwoColumn !== false,
     }
-    : { showCategoryLabelsInShoppingList: false, movePurchasedToBottom: true };
+    : { showCategoryLabelsInShoppingList: false, movePurchasedToBottom: true, productListTwoColumn: true };
 
   freeMemos = backup.freeMemos ? backup.freeMemos.map(normalizeFreeMemo) : [];
   selectionMemories = normalizeSelectionMemories(backup.selectionMemories);
@@ -1793,6 +1798,12 @@ function handleToggleMovePurchasedToBottomSetting(checked) {
   renderListTab();
 }
 
+function handleToggleProductListTwoColumnSetting(checked) {
+  settings.productListTwoColumn = checked;
+  saveAppSettings();
+  renderListTab();
+}
+
 function isShoppingPurchaseToggleLocked() {
   return shoppingMode === "shopping" && Date.now() < shoppingToggleLockedUntil;
 }
@@ -2084,6 +2095,10 @@ function renderTabs() {
   if (movePurchasedToBottomSetting) {
     movePurchasedToBottomSetting.checked = settings.movePurchasedToBottom !== false;
   }
+  const productListTwoColumnSetting = document.getElementById("setting-product-list-two-column");
+  if (productListTwoColumnSetting) {
+    productListTwoColumnSetting.checked = settings.productListTwoColumn !== false;
+  }
   const appVersionLabel = document.getElementById("appVersionLabel");
   if (appVersionLabel) {
     appVersionLabel.textContent = `Ver.${APP_VERSION}`;
@@ -2267,7 +2282,8 @@ function renderListTab() {
 
   // Product section
   if (displayItems.length > 0) {
-    html += '<div class="list-table list-table--compact">';
+    const productListLayoutClass = settings.productListTwoColumn !== false ? "list-table--compact" : "list-table--single";
+    html += `<div class="list-table ${productListLayoutClass}">`;
 
     displayItems.forEach(item => {
       const categoryName = item.categoryId && categoryMap[item.categoryId] ? categoryMap[item.categoryId].name : "";

@@ -626,6 +626,16 @@ body.body--purchased-undo-visible .app {
   gap: 8px;
 }
 
+.list-table--single {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.list-table--single .list-row {
+  width: 100%;
+}
+
 .data-row,
 .list-row {
   display: flex;
