@@ -397,6 +397,7 @@ body.body--purchased-undo-visible .app {
 }
 
 .mode-panel--list {
+  background: #1b2347;
   padding: 10px 12px;
 }
 
@@ -582,6 +583,15 @@ body.body--purchased-undo-visible .app {
   font-size: 0.8rem;
 }
 
+.mode-help__item strong .mode-help__note {
+  display: inline-block;
+  margin-left: 4px;
+  color: var(--color-text-muted);
+  font-size: 0.66rem;
+  font-weight: 400;
+  line-height: 1.2;
+}
+
 .mode-help__item span {
   font-size: 0.76rem;
   line-height: 1.45;
@@ -716,6 +726,26 @@ body.body--purchased-undo-visible .app {
   color: var(--color-text-muted);
 }
 
+body.shopping-mode .list-row.shopping-tap-feedback,
+body.shopping-mode .free-memo-row.shopping-tap-feedback {
+  animation: shoppingTapFeedback 130ms ease-out;
+  transform-origin: center;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.shopping-mode .list-row.shopping-tap-feedback,
+  body.shopping-mode .free-memo-row.shopping-tap-feedback {
+    animation: none;
+  }
+}
+
+@keyframes shoppingTapFeedback {
+  0% { opacity: 1; transform: scale(1); }
+  45% { opacity: 0.92; transform: scale(0.95); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
 .list-table--compact .list-row {
   align-items: flex-start;
   gap: 10px;
@@ -762,6 +792,16 @@ body.body--purchased-undo-visible .app {
 .free-memo-input input:focus {
   outline: none;
   border-color: var(--color-accent);
+}
+
+.free-memo-input--panel {
+  margin-top: 2px;
+  margin-bottom: 0;
+  padding: 8px 0 0;
+  border: 0;
+  border-top: 1px solid var(--color-border);
+  border-radius: 0;
+  background: transparent;
 }
 
 .free-memo-list {
@@ -1306,6 +1346,10 @@ span.free-memo-row__text {
     padding: 10px;
   }
 
+  .free-memo-input--panel {
+    padding: 8px 0 0;
+  }
+
   .free-memo-input .btn,
   .free-memo-input button {
     min-width: 64px;
@@ -1339,6 +1383,10 @@ body.shopping-mode #panel-list .mode-switch__btn--active{
   background:#f97316;
   border-color:#f97316;
   color:#ffffff;
+}
+
+body.shopping-mode #panel-list .mode-panel--list {
+  background: #4a2a12;
 }
 
 /* =========================

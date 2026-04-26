@@ -529,3 +529,20 @@ PWA更新反映の安定性も強化し、実運用品質を高めた版。
 - Integrated memory button explanations into the main help tooltip.
 - Added explanations for 全選択 and 全解除.
 - Improved compact mobile layout so memory buttons and bulk selection controls fit better in one row.
+
+## v1.4.14 Tooltip Visual Noise Reduction
+
+### Completed
+- ツールチップ内のメモリボタン説明に「※対象選択モード時のみ」を追加
+- ツールチップ内の全選択説明に「※対象選択モード時のみ」を追加
+- ツールチップ内の全解除説明に「※対象選択モード時のみ」を追加
+- ツールチップ内の「※対象選択モード時のみ」を補助テキスト表示へ変更
+- 補助テキストを小さめ・グレー・通常ウェイトに調整
+- ツールチップ見出しの主文言を見やすく維持
+- 対象選択モードのフリーメモ入力欄を操作パネル内へ統合
+- 操作エリアとフリーメモ追加エリアをまとめ、スマホ表示時の縦方向の余白を削減
+- 対象選択モードの操作パネルにダークブルー系背景を適用
+- 買い物モードの操作パネルにダークオレンジ系背景を適用
+- 買い物モードのチェック操作に軽量タップアニメーションを追加
+- APP_VERSION を 1.4.14 に更新
+- service-worker cache version を更新

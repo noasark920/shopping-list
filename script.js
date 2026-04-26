@@ -7,7 +7,7 @@ const STORAGE_KEYS = {
   missionRewardLastDrawAt: "missionRewardLastDrawAt",
 };
 
-const APP_VERSION = "1.4.12";
+const APP_VERSION = "1.4.14";
 const BACKUP_VERSION = "1.4.0";
 const MISSION_REWARD_COOLDOWN_MS = 5 * 60 * 1000;
 const SHOPPING_TOGGLE_LOCK_MS = 500;
@@ -39,6 +39,7 @@ let missionCompleteVisible = false;
 let missionCompleteTimers = [];
 let shoppingToggleLockedUntil = 0;
 let shoppingToggleLockTimer = null;
+let pendingShoppingTapAnimation = null;
 
 saveData(STORAGE_KEYS.items, items);
 saveAppSettings();
@@ -1673,6 +1674,29 @@ function lockShoppingPurchaseToggles() {
   }, SHOPPING_TOGGLE_LOCK_MS);
 }
 
+function queueShoppingTapAnimation(type, id) {
+  if (shoppingMode !== "shopping" || window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches) return;
+  pendingShoppingTapAnimation = { type, id };
+}
+
+function applyPendingShoppingTapAnimation() {
+  if (!pendingShoppingTapAnimation || shoppingMode !== "shopping") {
+    pendingShoppingTapAnimation = null;
+    return;
+  }
+
+  const { type, id } = pendingShoppingTapAnimation;
+  pendingShoppingTapAnimation = null;
+  const rowClass = type === "memo" ? ".free-memo-row" : ".list-row";
+  const row = [...document.querySelectorAll(rowClass)].find(element => element.dataset.id === id);
+  if (!row) return;
+  row.classList.remove("shopping-tap-feedback");
+  requestAnimationFrame(() => {
+    row.classList.add("shopping-tap-feedback");
+    window.setTimeout(() => row.classList.remove("shopping-tap-feedback"), 140);
+  });
+}
+
 function handleTogglePurchased(id) {
   if (isShoppingPurchaseToggleLocked()) return;
   const item = items.find(entry => entry.id === id);
@@ -1682,6 +1706,7 @@ function handleTogglePurchased(id) {
   togglePurchased(id);
   if (item.purchased !== previousPurchased) {
     lockShoppingPurchaseToggles();
+    queueShoppingTapAnimation("item", id);
     showPurchasedUndo({
       type: "item",
       id,
@@ -1775,6 +1800,7 @@ function handleToggleFreeMemoPurchased(id) {
   toggleFreeMemoPurchased(id);
   if (memo.purchased !== previousPurchased) {
     lockShoppingPurchaseToggles();
+    queueShoppingTapAnimation("memo", id);
     showPurchasedUndo({
       type: "memo",
       id,
@@ -1950,6 +1976,12 @@ function renderShoppingModePanelCompact(remainingCount) {
         </div>
       </div>
     ` : "";
+  const freeMemoInput = shoppingMode === "select" ? `
+      <div class="free-memo-input free-memo-input--panel">
+        <input id="free-memo-input" type="text" placeholder="フリーメモを入力" maxlength="100" onkeydown="if(event.key==='Enter') handleAddFreeMemo()" />
+        <button class="btn btn--primary btn--sm" onclick="handleAddFreeMemo()">追加</button>
+      </div>
+    ` : "";
 
   return `
     <div class="mode-panel mode-panel--list">
@@ -1983,13 +2015,14 @@ function renderShoppingModePanelCompact(remainingCount) {
           <div class="mode-help__tooltip ${shoppingModeHelpOpen ? "mode-help__tooltip--open" : ""}" role="tooltip">
             <p class="mode-help__item"><strong>対象選択モード</strong><span>${escapeHtml(descriptions.select)}</span></p>
             <p class="mode-help__item"><strong>買い物モード</strong><span>${escapeHtml(descriptions.shopping)}</span></p>
-            <p class="mode-help__item"><strong>メモリボタン</strong><span>1 / 2 / 3 は対象選択メモリです。<br>短押し：登録済みの選択状態を呼び出します。<br>長押し：現在の選択状態を登録します。<br>よく買う商品の組み合わせを保存しておくと、次回からワンタッチで選択できます。</span></p>
-            <p class="mode-help__item"><strong>全選択</strong><span>すべての商品を買い物対象にします。</span></p>
-            <p class="mode-help__item"><strong>全解除</strong><span>すべての商品を買い物対象から外します。</span></p>
+            <p class="mode-help__item"><strong>メモリボタン <span class="mode-help__note">※対象選択モード時のみ</span></strong><span>1 / 2 / 3 は対象選択メモリです。<br>短押し：登録済みの選択状態を呼び出します。<br>長押し：現在の選択状態を登録します。<br>よく買う商品の組み合わせを保存しておくと、次回からワンタッチで選択できます。</span></p>
+            <p class="mode-help__item"><strong>全選択 <span class="mode-help__note">※対象選択モード時のみ</span></strong><span>すべての商品を買い物対象にします。</span></p>
+            <p class="mode-help__item"><strong>全解除 <span class="mode-help__note">※対象選択モード時のみ</span></strong><span>すべての商品を買い物対象から外します。</span></p>
           </div>
         </div>
       </div>
       ${resetButton}
+      ${freeMemoInput}
     </div>
   `;
 }
@@ -2032,16 +2065,6 @@ function renderListTab() {
 
   let html = renderShoppingModePanelCompact(remainingCount);
 
-  // Free Memo section
-  if (shoppingMode === "select") {
-    html += `
-      <div class="free-memo-input">
-        <input id="free-memo-input" type="text" placeholder="フリーメモを入力" maxlength="100" onkeydown="if(event.key==='Enter') handleAddFreeMemo()" />
-        <button class="btn btn--primary btn--sm" onclick="handleAddFreeMemo()">追加</button>
-      </div>
-    `;
-  }
-
   if (displayMemos.length > 0) {
     html += '<div class="free-memo-list">';
     displayMemos.forEach(memo => {
@@ -2053,7 +2076,7 @@ function renderListTab() {
 
       if (shoppingMode === "shopping") {
         html += `
-          <label class="free-memo-row ${memo.purchased ? "free-memo-row--purchased" : ""}">
+          <label class="free-memo-row ${memo.purchased ? "free-memo-row--purchased" : ""}" data-id="${memo.id}">
             <span class="free-memo-row__check">
               <input
                 type="checkbox"
@@ -2128,6 +2151,7 @@ function renderListTab() {
   }
 
   container.innerHTML = html;
+  applyPendingShoppingTapAnimation();
 }
 
 function handleTabClick(tab) {
