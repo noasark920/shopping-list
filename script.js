@@ -4,12 +4,10 @@ const STORAGE_KEYS = {
   settings: "shoppingList_settings",
   freeMemos: "shoppingList_freeMemos",
   selectionMemories: "shoppingSelectionMemories",
-  missionRewardLastDrawAt: "missionRewardLastDrawAt",
 };
 
-const APP_VERSION = "1.4.14";
+const APP_VERSION = "1.4.15";
 const BACKUP_VERSION = "1.4.0";
-const MISSION_REWARD_COOLDOWN_MS = 5 * 60 * 1000;
 const SHOPPING_TOGGLE_LOCK_MS = 500;
 
 const MESSAGES = {
@@ -37,6 +35,7 @@ let pendingPurchasedUndoTimer = null;
 let missionCompleteShown = false;
 let missionCompleteVisible = false;
 let missionCompleteTimers = [];
+let missionRewardPattern = null;
 let shoppingToggleLockedUntil = 0;
 let shoppingToggleLockTimer = null;
 let pendingShoppingTapAnimation = null;
@@ -836,12 +835,23 @@ function getShoppingCompletionState() {
     totalSelected > 0 &&
     selectedItems.every(item => item.purchased) &&
     selectedMemos.every(memo => memo.purchased);
+  const allUnchecked =
+    totalSelected > 0 &&
+    selectedItems.every(item => !item.purchased) &&
+    selectedMemos.every(memo => !memo.purchased);
 
-  return { totalSelected, completed };
+  return { totalSelected, completed, allUnchecked };
+}
+
+function resetMissionRewardIfAllUnchecked() {
+  if (getShoppingCompletionState().allUnchecked) {
+    missionRewardPattern = null;
+  }
 }
 
 function resetMissionCompleteEligibility() {
   missionCompleteShown = false;
+  resetMissionRewardIfAllUnchecked();
   if (!getShoppingCompletionState().completed) {
     hideMissionCompletePopup();
   }
@@ -913,20 +923,6 @@ function scheduleMissionCompleteStep(callback, delay) {
   missionCompleteTimers.push(timerId);
 }
 
-function getMissionRewardLastDrawAt() {
-  const value = Number(localStorage.getItem(STORAGE_KEYS.missionRewardLastDrawAt));
-  return Number.isFinite(value) ? value : 0;
-}
-
-function canDrawRareMissionReward(now = Date.now()) {
-  const lastDrawAt = getMissionRewardLastDrawAt();
-  return !lastDrawAt || now - lastDrawAt >= MISSION_REWARD_COOLDOWN_MS;
-}
-
-function saveMissionRewardDrawAt(timestamp) {
-  localStorage.setItem(STORAGE_KEYS.missionRewardLastDrawAt, String(timestamp));
-}
-
 function getNormalMissionCompleteRewardPattern() {
   return {
     initialImage: "./complete_n.webp",
@@ -935,12 +931,11 @@ function getNormalMissionCompleteRewardPattern() {
 }
 
 function getMissionCompleteRewardPattern() {
-  const now = Date.now();
-  if (!canDrawRareMissionReward(now)) {
+  const { totalSelected } = getShoppingCompletionState();
+  if (totalSelected <= 3) {
     return getNormalMissionCompleteRewardPattern();
   }
 
-  saveMissionRewardDrawAt(now);
   const rand = Math.random();
   if (rand < 0.75) {
     return getNormalMissionCompleteRewardPattern();
@@ -963,12 +958,20 @@ function getMissionCompleteRewardPattern() {
   };
 }
 
+function prepareMissionRewardForShoppingStart() {
+  if (shoppingMode !== "shopping" || missionRewardPattern) return;
+  missionRewardPattern = getMissionCompleteRewardPattern();
+}
+
 function showMissionCompletePopup() {
   clearMissionCompleteTimers();
 
   missionCompleteShown = true;
   missionCompleteVisible = true;
-  const rewardPattern = getMissionCompleteRewardPattern();
+  if (!missionRewardPattern) {
+    missionRewardPattern = getMissionCompleteRewardPattern();
+  }
+  const rewardPattern = missionRewardPattern;
   const element = getMissionCompleteElement();
   setMissionCompleteImage(rewardPattern.initialImage);
   setMissionCompleteCloseVisible(false);
@@ -1702,11 +1705,15 @@ function handleTogglePurchased(id) {
   const item = items.find(entry => entry.id === id);
   if (!item) return;
   const previousPurchased = item.purchased;
+  const wasAllUnchecked = getShoppingCompletionState().allUnchecked;
 
   togglePurchased(id);
   if (item.purchased !== previousPurchased) {
     lockShoppingPurchaseToggles();
     queueShoppingTapAnimation("item", id);
+    if (item.purchased && wasAllUnchecked) {
+      prepareMissionRewardForShoppingStart();
+    }
     showPurchasedUndo({
       type: "item",
       id,
@@ -1796,11 +1803,15 @@ function handleToggleFreeMemoPurchased(id) {
   const memo = freeMemos.find(entry => entry.id === id);
   if (!memo) return;
   const previousPurchased = memo.purchased;
+  const wasAllUnchecked = getShoppingCompletionState().allUnchecked;
 
   toggleFreeMemoPurchased(id);
   if (memo.purchased !== previousPurchased) {
     lockShoppingPurchaseToggles();
     queueShoppingTapAnimation("memo", id);
+    if (memo.purchased && wasAllUnchecked) {
+      prepareMissionRewardForShoppingStart();
+    }
     showPurchasedUndo({
       type: "memo",
       id,
