@@ -508,3 +508,16 @@ PWA更新反映の安定性も強化し、実運用品質を高めた版。
 - カテゴリ管理 一括削除モードの表記を 全選択 / 全解除 に統一
 - UI文言を全体的に統一
 - service-worker cache version を v27 に更新
+
+## v1.4.11 Compact UI & Version Display Update
+
+### Completed
+- メモリボタンの表示を保存名の先頭1文字に変更
+- メモリボタンサイズをスマホ幅向けに調整
+- 対象選択モードの操作行レイアウトを改善
+- Undo snackbar の文言を「チェック状態を変更」に短縮
+- Undo snackbar を1行表示・コンパクト化
+- Snackbar表示中のみ下部余白を追加し、最下段項目を押しやすく改善
+- ハンバーガーメニュー最下部にアプリVersionを表示
+- APP_VERSION 定数でVersion表示を一元管理
+- service-worker cache version を v31 に更新

@@ -7,6 +7,7 @@ const STORAGE_KEYS = {
   missionRewardLastDrawAt: "missionRewardLastDrawAt",
 };
 
+const APP_VERSION = "1.4.11";
 const BACKUP_VERSION = "1.4.0";
 const MISSION_REWARD_COOLDOWN_MS = 5 * 60 * 1000;
 const SHOPPING_TOGGLE_LOCK_MS = 500;
@@ -445,9 +446,20 @@ function getSelectionMemoryDisplayName(slot) {
   return name ? name : getSelectionMemoryLabel(slot);
 }
 
+function getFirstVisibleCharacter(value) {
+  const text = String(value || "").trim();
+  if (!text) return "";
+  if (typeof Intl !== "undefined" && Intl.Segmenter) {
+    const segmenter = new Intl.Segmenter("ja", { granularity: "grapheme" });
+    const firstSegment = segmenter.segment(text)[Symbol.iterator]().next().value;
+    return firstSegment ? firstSegment.segment : "";
+  }
+  return Array.from(text)[0] || "";
+}
+
 function getSelectionMemoryButtonLabel(slot) {
   const name = selectionMemories[slot]?.name;
-  return name ? Array.from(name).slice(0, 2).join("") : getSelectionMemoryLabel(slot);
+  return name ? getFirstVisibleCharacter(name) : getSelectionMemoryLabel(slot);
 }
 
 function isSelectionMemoryEmpty(slot) {
@@ -757,6 +769,7 @@ function hidePurchasedUndo() {
   if (element) {
     element.classList.remove("purchased-undo--show");
   }
+  document.body.classList.remove("body--purchased-undo-visible");
 }
 
 function clearPurchasedUndo() {
@@ -776,10 +789,13 @@ function showPurchasedUndo(action) {
   pendingPurchasedUndo = action;
   const element = getPurchasedUndoElement();
   element.innerHTML = `
-    <span class="purchased-undo__message">チェック状態を変更しました</span>
+    <span class="purchased-undo__message">チェック状態を変更</span>
     <button type="button" class="purchased-undo__action" onclick="handleUndoPurchasedToggle()">元に戻す</button>
   `;
-  requestAnimationFrame(() => element.classList.add("purchased-undo--show"));
+  requestAnimationFrame(() => {
+    document.body.classList.add("body--purchased-undo-visible");
+    element.classList.add("purchased-undo--show");
+  });
 
   pendingPurchasedUndoTimer = setTimeout(() => {
     clearPurchasedUndo();
@@ -1933,6 +1949,10 @@ function renderTabs() {
   const movePurchasedToBottomSetting = document.getElementById("setting-move-purchased-to-bottom");
   if (movePurchasedToBottomSetting) {
     movePurchasedToBottomSetting.checked = settings.movePurchasedToBottom !== false;
+  }
+  const appVersionLabel = document.getElementById("appVersionLabel");
+  if (appVersionLabel) {
+    appVersionLabel.textContent = `Ver.${APP_VERSION}`;
   }
 }
 
