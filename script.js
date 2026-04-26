@@ -6,7 +6,7 @@ const STORAGE_KEYS = {
   selectionMemories: "shoppingSelectionMemories",
 };
 
-const APP_VERSION = "1.4.19";
+const APP_VERSION = "1.4.20";
 const BACKUP_VERSION = "1.4.0";
 const SHOPPING_TOGGLE_LOCK_MS = 500;
 const MISSION_COUNTDOWN_DISPLAY_MS = 1100;
@@ -1537,6 +1537,29 @@ function renderAll() {
   renderItemsTab();
 }
 
+function deferAfterFirstPaint(callback) {
+  const runWhenIdle = () => {
+    if ("requestIdleCallback" in window) {
+      window.requestIdleCallback(callback, { timeout: 1200 });
+    } else {
+      window.setTimeout(callback, 120);
+    }
+  };
+  window.requestAnimationFrame(() => {
+    window.requestAnimationFrame(runWhenIdle);
+  });
+}
+
+function renderInitialApp() {
+  cleanupSelections();
+  renderTabs({ renderHeader: false });
+  renderListTab({ renderHeader: true });
+  deferAfterFirstPaint(() => {
+    renderCategoriesTab();
+    renderItemsTab();
+  });
+}
+
 function handleShoppingModeChange(mode) {
   shoppingMode = mode;
   shoppingModeHelpOpen = false;
@@ -2162,7 +2185,8 @@ function setupShoppingModeHelp() {
   });
 }
 
-function renderTabs() {
+function renderTabs(options = {}) {
+  const { renderHeader = true } = options;
   document.querySelectorAll(".app-menu__item").forEach(button => {
     button.classList.toggle("app-menu__item--active", button.dataset.tab === activeTab);
   });
@@ -2202,7 +2226,9 @@ function renderTabs() {
   if (appVersionLabel) {
     appVersionLabel.textContent = `Ver.${APP_VERSION}`;
   }
-  renderAppHeader(getCurrentRemainingCount());
+  if (renderHeader) {
+    renderAppHeader(getCurrentRemainingCount());
+  }
 }
 
 function getCurrentRemainingCount() {
@@ -2322,7 +2348,8 @@ function renderPreparationControlPanel() {
   `;
 }
 
-function renderListTab() {
+function renderListTab(options = {}) {
+  const { renderHeader = true } = options;
   const container = document.getElementById("list-content");
   const sortedItems = getSortedItems();
   const categoryMap = getCategoryMap();
@@ -2330,7 +2357,7 @@ function renderListTab() {
     ? sortedItems.filter(item => item.selectedForShopping)
     : sortedItems;
   const remainingCount = getRemainingShoppingCount(sortedItems) + freeMemos.filter(memo => memo.selectedForShopping && !memo.purchased).length;
-  if (activeTab === "list") {
+  if (activeTab === "list" && renderHeader) {
     renderAppHeader(remainingCount);
   }
   const visibleMemos = shoppingMode === "shopping"
@@ -2517,5 +2544,5 @@ document.addEventListener("DOMContentLoaded", () => {
     shoppingMode === "shopping"
   );
 
-  renderAll();
+  renderInitialApp();
 });
