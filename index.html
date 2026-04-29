@@ -101,14 +101,38 @@
               />
               <span>完了済みを下へ移動</span>
             </label>
-            <label class="app-menu__setting" role="menuitem">
-              <input
-                id="setting-product-list-two-column"
-                type="checkbox"
-                onchange="handleToggleProductListTwoColumnSetting(this.checked)"
-              />
-              <span>項目リストを2列表示</span>
-            </label>
+            <div class="app-menu__setting app-menu__setting--columns" role="group" aria-label="表示列数">
+              <span class="app-menu__setting-label">表示列数</span>
+              <div class="app-menu__segmented" aria-label="項目リストの表示列数">
+                <label class="app-menu__segment">
+                  <input
+                    type="radio"
+                    name="setting-display-columns"
+                    value="1"
+                    onchange="handleDisplayColumnsSettingChange(this.value)"
+                  />
+                  <span>1列</span>
+                </label>
+                <label class="app-menu__segment">
+                  <input
+                    type="radio"
+                    name="setting-display-columns"
+                    value="2"
+                    onchange="handleDisplayColumnsSettingChange(this.value)"
+                  />
+                  <span>2列</span>
+                </label>
+                <label class="app-menu__segment">
+                  <input
+                    type="radio"
+                    name="setting-display-columns"
+                    value="3"
+                    onchange="handleDisplayColumnsSettingChange(this.value)"
+                  />
+                  <span>3列</span>
+                </label>
+              </div>
+            </div>
           </div>
           <div id="category-label-setting-tooltip" class="app-menu__setting-tooltip" role="tooltip">
             準備モード・実行モードの項目にカテゴリ名を表示します。<br />

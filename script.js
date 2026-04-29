@@ -7,7 +7,7 @@ const STORAGE_KEYS = {
   onboardingCompleted: "shoppingList_onboardingCompleted",
 };
 
-const APP_VERSION = "1.4.28";
+const APP_VERSION = "1.4.29";
 const BACKUP_VERSION = "1.4.0";
 const SHOPPING_TOGGLE_LOCK_MS = 500;
 const MISSION_COUNTDOWN_DISPLAY_MS = 1100;
@@ -104,7 +104,7 @@ function loadSettings() {
     return {
       showCategoryLabelsInShoppingList: false,
       movePurchasedToBottom: true,
-      productListTwoColumn: true,
+      displayColumns: 2,
     };
   }
   try {
@@ -113,22 +113,30 @@ function loadSettings() {
       return {
         showCategoryLabelsInShoppingList: false,
         movePurchasedToBottom: true,
-        productListTwoColumn: true,
+        displayColumns: 2,
       };
     }
     return {
       ...parsed,
       showCategoryLabelsInShoppingList: Boolean(parsed.showCategoryLabelsInShoppingList),
       movePurchasedToBottom: parsed.movePurchasedToBottom !== false,
-      productListTwoColumn: parsed.productListTwoColumn !== false,
+      displayColumns: normalizeDisplayColumnsSetting(parsed),
     };
   } catch {
     return {
       showCategoryLabelsInShoppingList: false,
       movePurchasedToBottom: true,
-      productListTwoColumn: true,
+      displayColumns: 2,
     };
   }
+}
+
+function normalizeDisplayColumnsSetting(source) {
+  const value = typeof source === "object" && source !== null ? source.displayColumns : source;
+  const numericValue = Number(value);
+  if ([1, 2, 3].includes(numericValue)) return numericValue;
+  if (typeof source === "object" && source !== null && source.productListTwoColumn === false) return 1;
+  return 2;
 }
 
 function saveAppSettings() {
@@ -354,9 +362,9 @@ function applyBackupData(backup) {
       ...backup.settings,
       showCategoryLabelsInShoppingList: Boolean(backup.settings.showCategoryLabelsInShoppingList),
       movePurchasedToBottom: backup.settings.movePurchasedToBottom !== false,
-      productListTwoColumn: backup.settings.productListTwoColumn !== false,
+      displayColumns: normalizeDisplayColumnsSetting(backup.settings),
     }
-    : { showCategoryLabelsInShoppingList: false, movePurchasedToBottom: true, productListTwoColumn: true };
+    : { showCategoryLabelsInShoppingList: false, movePurchasedToBottom: true, displayColumns: 2 };
 
   freeMemos = backup.freeMemos ? backup.freeMemos.map(normalizeFreeMemo) : [];
   selectionMemories = normalizeSelectionMemories(backup.selectionMemories);
@@ -800,6 +808,26 @@ function getPurchasedLastEntries(entries) {
     ...entries.filter(entry => !entry.purchased),
     ...entries.filter(entry => entry.purchased),
   ];
+}
+
+function getDisplayColumns() {
+  return normalizeDisplayColumnsSetting(settings);
+}
+
+function getProductListLayoutClass(displayColumns = getDisplayColumns()) {
+  if (displayColumns === 1) return "list-table--single";
+  if (displayColumns === 3) return "list-table--triple";
+  return "list-table--compact";
+}
+
+function getZigzagRows(entries, columns) {
+  const rows = [];
+  for (let index = 0; index < entries.length; index += columns) {
+    const row = entries.slice(index, index + columns);
+    const emptyCells = Array(Math.max(columns - row.length, 0)).fill(null);
+    rows.push(rows.length % 2 === 1 ? [...emptyCells, ...row.reverse()] : [...row, ...emptyCells]);
+  }
+  return rows;
 }
 
 function cleanupSelections() {
@@ -2149,8 +2177,8 @@ function handleToggleMovePurchasedToBottomSetting(checked) {
   renderListTab();
 }
 
-function handleToggleProductListTwoColumnSetting(checked) {
-  settings.productListTwoColumn = checked;
+function handleDisplayColumnsSettingChange(value) {
+  settings.displayColumns = normalizeDisplayColumnsSetting(value);
   saveAppSettings();
   renderListTab();
 }
@@ -2459,10 +2487,9 @@ function renderTabs(options = {}) {
   if (movePurchasedToBottomSetting) {
     movePurchasedToBottomSetting.checked = settings.movePurchasedToBottom !== false;
   }
-  const productListTwoColumnSetting = document.getElementById("setting-product-list-two-column");
-  if (productListTwoColumnSetting) {
-    productListTwoColumnSetting.checked = settings.productListTwoColumn !== false;
-  }
+  document.querySelectorAll('input[name="setting-display-columns"]').forEach(input => {
+    input.checked = Number(input.value) === normalizeDisplayColumnsSetting(settings);
+  });
   const appVersionLabel = document.getElementById("appVersionLabel");
   if (appVersionLabel) {
     appVersionLabel.textContent = `Ver.${APP_VERSION}`;
@@ -2710,10 +2737,11 @@ function renderListTab(options = {}) {
 
   // Product section
   if (displayItems.length > 0) {
-    const productListLayoutClass = settings.productListTwoColumn !== false ? "list-table--compact" : "list-table--single";
+    const displayColumns = getDisplayColumns();
+    const productListLayoutClass = getProductListLayoutClass(displayColumns);
     html += `<div class="list-table ${productListLayoutClass}">`;
 
-    displayItems.forEach(item => {
+    const renderItemRow = item => {
       const categoryName = item.categoryId && categoryMap[item.categoryId] ? categoryMap[item.categoryId].name : "";
       const categorySubHtml = settings.showCategoryLabelsInShoppingList && categoryName
         ? `<span class="list-row__sub">${escapeHtml(categoryName)}</span>`
@@ -2724,7 +2752,7 @@ function renderListTab(options = {}) {
         ? `handleToggleShoppingSelection('${item.id}', this.checked)`
         : `handleTogglePurchased('${item.id}')`;
 
-      html += `
+      return `
         <label class="list-row ${shoppingMode === "shopping" && item.purchased ? "list-row--purchased" : ""}" data-id="${item.id}">
           <span class="list-row__check">
             <input
@@ -2740,7 +2768,23 @@ function renderListTab(options = {}) {
           </span>
         </label>
       `;
-    });
+    };
+
+    if (displayColumns === 3) {
+      getZigzagRows(displayItems, 3).forEach((row, rowIndex, rows) => {
+        row.forEach(item => {
+          html += item ? renderItemRow(item) : '<div class="list-row-placeholder" aria-hidden="true"></div>';
+        });
+        if (rowIndex < rows.length - 1) {
+          const guidePositionClass = rowIndex % 2 === 0 ? "list-row-guide--end" : "list-row-guide--start";
+          html += `<div class="list-row-guide ${guidePositionClass}" aria-hidden="true"><span class="list-row-guide__icon"></span></div>`;
+        }
+      });
+    } else {
+      displayItems.forEach(item => {
+        html += renderItemRow(item);
+      });
+    }
 
     html += "</div>";
   }
