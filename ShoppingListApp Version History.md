@@ -649,3 +649,18 @@ PWA更新反映の安定性も強化し、実運用品質を高めた版。
 - メモリ機能はフィルタ状態を保存せず、従来どおり全項目の選択状態を保存する仕様を維持
 - APP_VERSION を 1.4.21 に更新
 - service-worker cache version を更新
+
+## v1.4.22 Image Asset Folder Reorganization
+
+### Completed
+- 画像アセットを img/ フォルダへ集約
+- PWAアイコン、Reward画像、Countdown画像、Mission Complete画像、Onboarding画像を img/ 配下へ移動
+- index.html / manifest.webmanifest / script.js / service-worker.js の画像参照パスを更新
+- Service Worker のキャッシュ対象を img/ 配下の画像パスへ更新
+- ルート直下の画像ファイルを整理し、プロジェクト構成の見通しを改善
+
+### Notes
+- オンボードUIの実装は未実施
+- 既存機能の仕様変更なし
+- localStorage構造変更なし
+- 既存データ互換性維持

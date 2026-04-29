@@ -959,7 +959,7 @@ function getMissionCompleteElement() {
     element.setAttribute("aria-live", "polite");
     element.innerHTML = `
       <div class="mission-complete-popup__card" aria-label="Mission complete">
-        <img src="./complete_n.webp" alt="Mission complete" class="mission-complete-popup__image" />
+        <img src="./img/complete_n.webp" alt="Mission complete" class="mission-complete-popup__image" />
       </div>
       <button type="button" class="mission-complete-popup__close" onclick="hideMissionCompletePopup()">
         閉じる
@@ -1003,7 +1003,7 @@ function scheduleMissionCompleteStep(callback, delay) {
 function getNormalMissionCompleteRewardPattern() {
   return {
     rarity: "normal",
-    initialImage: "./complete_n.webp",
+    initialImage: "./img/complete_n.webp",
     steps: [{ delay: 3000, action: hideMissionCompletePopup }],
   };
 }
@@ -1021,18 +1021,18 @@ function getMissionCompleteRewardPattern() {
   if (rand < 0.95) {
     return {
       rarity: "rare",
-      initialImage: "./complete_n.webp",
+      initialImage: "./img/complete_n.webp",
       steps: [
-        { delay: 1200, action: () => setMissionCompleteImage("./complete_r.webp") },
+        { delay: 1200, action: () => setMissionCompleteImage("./img/complete_r.webp") },
         { delay: 3400, action: hideMissionCompletePopup },
       ],
     };
   }
   return {
     rarity: "superRare",
-    initialImage: "./complete_n.webp",
+    initialImage: "./img/complete_n.webp",
     steps: [
-      { delay: 1200, action: () => setMissionCompleteImage("./complete_sr.webp") },
+      { delay: 1200, action: () => setMissionCompleteImage("./img/complete_sr.webp") },
       { delay: 4000, action: hideMissionCompletePopup },
     ],
   };
@@ -1065,7 +1065,7 @@ function getMissionCountdownImage(rarity, remainingNumber) {
     rare: "r",
     superRare: "sr",
   }[rarity] || "n";
-  return `./countdown_${prefix}${remainingNumber}.png`;
+  return `./img/countdown_${prefix}${remainingNumber}.png`;
 }
 
 function getMissionCountdownPatterns(rewardRarity) {
@@ -1113,7 +1113,7 @@ function getMissionCountdownElement() {
     element.setAttribute("role", "status");
     element.setAttribute("aria-live", "polite");
     element.innerHTML = `
-      <img src="./countdown_n3.png" alt="" class="mission-countdown-effect__image" />
+      <img src="./img/countdown_n3.png" alt="" class="mission-countdown-effect__image" />
     `;
     document.body.appendChild(element);
   }
