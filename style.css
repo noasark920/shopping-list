@@ -736,7 +736,8 @@ body.body--purchased-undo-visible .app {
 .list-table--triple {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 6px;
+  column-gap: 4px;
+  row-gap: 6px;
 }
 
 .list-table--single {
@@ -896,7 +897,7 @@ body.shopping-mode .free-memo-row.shopping-tap-feedback {
   align-items: flex-start;
   gap: 6px;
   min-height: 0;
-  padding: 8px 6px 9px;
+  padding: 6px 6px 7px;
 }
 
 .list-table--triple .list-row__check {
@@ -918,7 +919,7 @@ body.shopping-mode .free-memo-row.shopping-tap-feedback {
   overflow: hidden;
   font-size: 0.78rem;
   font-weight: 700;
-  line-height: 1.2;
+  line-height: 1.16;
   overflow-wrap: anywhere;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
@@ -928,7 +929,7 @@ body.shopping-mode .free-memo-row.shopping-tap-feedback {
   display: -webkit-box;
   overflow: hidden;
   font-size: 0.66rem;
-  line-height: 1.2;
+  line-height: 1.16;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 1;
 }
@@ -1704,17 +1705,18 @@ span.free-memo-row__text {
     padding: 9px 9px 10px;
   }
   .list-table--triple {
-    gap: 5px;
+    column-gap: 4px;
+    row-gap: 5px;
   }
   .list-table--triple .list-row {
     gap: 5px;
-    padding: 7px 5px 8px;
+    padding: 6px 5px 7px;
   }
   .list-table--triple .list-row__name {
     font-size: 0.74rem;
   }
   .list-row-guide {
-    column-gap: 5px;
+    column-gap: 4px;
     min-height: 10px;
   }
   .modal__box { padding: 20px; }
