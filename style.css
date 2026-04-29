@@ -1163,7 +1163,7 @@ span.free-memo-row__text {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 8px;
+  padding: 4px;
   background: rgba(3, 5, 12, 0.92);
   backdrop-filter: blur(8px);
   opacity: 0;
@@ -1181,9 +1181,9 @@ span.free-memo-row__text {
 .onboarding-guide__panel {
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto auto;
-  width: min(calc(100vw - 16px), 480px);
-  max-height: calc(100vh - 16px);
-  padding: 0 0 14px;
+  width: min(calc(100vw - 8px), 520px);
+  max-height: calc(100vh - 8px);
+  padding: 0 0 10px;
   border: 0;
   border-radius: 20px;
   background: #fff;
@@ -1207,12 +1207,12 @@ span.free-memo-row__text {
   width: 100%;
   max-width: none;
   height: auto;
-  max-height: 62vh;
+  max-height: calc(100vh - 140px);
   object-fit: contain;
 }
 
 .onboarding-guide__body {
-  padding: 8px 18px 10px;
+  padding: 14px 18px 0;
   text-align: center;
 }
 
@@ -1236,11 +1236,16 @@ span.free-memo-row__text {
 
 .onboarding-guide__actions {
   display: grid;
-  gap: 8px;
+  gap: 6px;
   align-items: center;
   justify-items: center;
-  min-height: 80px;
+  height: 91px;
+  min-height: 91px;
   padding: 0 16px;
+  overflow: hidden;
+  position: relative;
+  z-index: 1;
+  transform: translateY(-58px);
 }
 
 .onboarding-guide__actions--spacer {
@@ -1249,7 +1254,7 @@ span.free-memo-row__text {
 
 .onboarding-guide__action-placeholder {
   width: 1px;
-  height: 80px;
+  height: 91px;
   visibility: hidden;
 }
 
@@ -1257,8 +1262,8 @@ span.free-memo-row__text {
   width: fit-content;
   min-width: 200px;
   max-width: 240px;
-  min-height: 46px;
-  padding: 10px 24px;
+  min-height: 44px;
+  padding: 9px 24px;
   border-radius: 9999px;
   box-shadow: 0 8px 20px rgba(108, 99, 255, 0.28);
   white-space: normal;
@@ -1266,13 +1271,14 @@ span.free-memo-row__text {
 
 .onboarding-guide__secondary {
   justify-self: center;
-  margin-top: 3px;
+  margin-top: 0;
   padding: 0 10px;
   border: 0;
   background: transparent;
   color: #666b78;
   font: inherit;
   font-size: 0.8rem;
+  line-height: 1.2;
   font-weight: 600;
   text-decoration: underline;
   text-underline-offset: 3px;
@@ -1563,36 +1569,38 @@ span.free-memo-row__text {
   .modal__box { padding: 20px; }
   .toast { white-space: normal; text-align: center; }
   .onboarding-guide {
-    padding: 6px;
+    padding: 3px;
   }
   .onboarding-guide__panel {
-    width: calc(100vw - 12px);
-    max-height: calc(100vh - 12px);
-    padding: 0 0 12px;
+    width: calc(100vw - 6px);
+    max-height: calc(100vh - 6px);
+    padding: 0 0 9px;
   }
   .onboarding-guide__image {
-    max-height: 61vh;
+    max-height: calc(100vh - 134px);
   }
   .onboarding-guide__body {
-    padding: 7px 14px 8px;
+    padding: 12px 14px 0;
   }
   .onboarding-guide__indicator {
     gap: 7px;
     margin-bottom: 0;
   }
   .onboarding-guide__actions {
-    gap: 7px;
-    min-height: 76px;
+    gap: 6px;
+    height: 90px;
+    min-height: 90px;
     padding: 0 12px;
+    transform: translateY(-58px);
   }
   .onboarding-guide__action-placeholder {
-    height: 76px;
+    height: 90px;
   }
   .onboarding-guide__primary {
-    min-height: 44px;
+    min-height: 42px;
     min-width: 200px;
     max-width: min(240px, calc(100vw - 64px));
-    padding: 9px 22px;
+    padding: 8px 22px;
     font-size: 0.82rem;
   }
 }

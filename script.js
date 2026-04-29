@@ -7,7 +7,7 @@ const STORAGE_KEYS = {
   onboardingCompleted: "shoppingList_onboardingCompleted",
 };
 
-const APP_VERSION = "1.4.24";
+const APP_VERSION = "1.4.25";
 const BACKUP_VERSION = "1.4.0";
 const SHOPPING_TOGGLE_LOCK_MS = 500;
 const MISSION_COUNTDOWN_DISPLAY_MS = 1100;
@@ -883,11 +883,6 @@ function renderOnboardingGuide() {
       <div class="onboarding-guide__image-wrap">
         <img src="${escapeHtml(slideImage)}" alt="" class="onboarding-guide__image" />
       </div>
-      <div class="onboarding-guide__body">
-        <div class="onboarding-guide__indicator" aria-label="${onboardingSlideIndex + 1} / ${ONBOARDING_IMAGES.length}">
-          ${indicator}
-        </div>
-      </div>
       <div class="onboarding-guide__actions ${isLastSlide ? "" : "onboarding-guide__actions--spacer"}">
         ${isLastSlide ? `
           <button type="button" class="btn btn--primary onboarding-guide__primary" onclick="handleOnboardingPrimaryAction()">
@@ -901,6 +896,11 @@ function renderOnboardingGuide() {
         ` : `
           <div class="onboarding-guide__action-placeholder" aria-hidden="true"></div>
         `}
+      </div>
+      <div class="onboarding-guide__body">
+        <div class="onboarding-guide__indicator" aria-label="${onboardingSlideIndex + 1} / ${ONBOARDING_IMAGES.length}">
+          ${indicator}
+        </div>
       </div>
     </div>
   `;
