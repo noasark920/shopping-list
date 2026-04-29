@@ -4,9 +4,10 @@ const STORAGE_KEYS = {
   settings: "shoppingList_settings",
   freeMemos: "shoppingList_freeMemos",
   selectionMemories: "shoppingSelectionMemories",
+  onboardingCompleted: "shoppingList_onboardingCompleted",
 };
 
-const APP_VERSION = "1.4.21";
+const APP_VERSION = "1.4.24";
 const BACKUP_VERSION = "1.4.0";
 const SHOPPING_TOGGLE_LOCK_MS = 500;
 const MISSION_COUNTDOWN_DISPLAY_MS = 1100;
@@ -34,6 +35,13 @@ const SAMPLE_ITEM_NAMES = [
   "トイレットペーパー",
 ];
 const SAMPLE_ITEM_CATEGORY_NAME = "買い物";
+
+const ONBOARDING_IMAGES = [
+  "./img/onboarding1.webp",
+  "./img/onboarding2.webp",
+  "./img/onboarding3.webp",
+  "./img/onboarding4.webp",
+];
 
 const MESSAGES = {
   noCategory: "カテゴリなし",
@@ -69,6 +77,10 @@ let shoppingToggleLockTimer = null;
 let pendingShoppingTapAnimation = null;
 let sampleCategoryRegistrationInProgress = false;
 let sampleItemRegistrationInProgress = false;
+let onboardingOpen = false;
+let onboardingSlideIndex = 0;
+let onboardingTouchStartX = null;
+let onboardingTouchStartY = null;
 
 saveData(STORAGE_KEYS.items, items);
 saveAppSettings();
@@ -820,6 +832,191 @@ function showToast(message, type = "info") {
     toast.classList.remove("toast--show");
     toast.addEventListener("transitionend", () => toast.remove(), { once: true });
   }, 3000);
+}
+
+function hasCompletedOnboarding() {
+  return localStorage.getItem(STORAGE_KEYS.onboardingCompleted) === "true";
+}
+
+function saveOnboardingCompleted() {
+  localStorage.setItem(STORAGE_KEYS.onboardingCompleted, "true");
+}
+
+function shouldAutoShowOnboarding() {
+  return !hasCompletedOnboarding() && items.length === 0;
+}
+
+function getOnboardingElement() {
+  let element = document.getElementById("onboarding-guide");
+  if (!element) {
+    element = document.createElement("div");
+    element.id = "onboarding-guide";
+    element.className = "onboarding-guide";
+    element.setAttribute("role", "dialog");
+    element.setAttribute("aria-modal", "true");
+    element.setAttribute("aria-label", "使い方を見る");
+    document.body.appendChild(element);
+  }
+  return element;
+}
+
+function renderOnboardingGuide() {
+  if (!onboardingOpen) return;
+
+  const element = getOnboardingElement();
+  const slideImage = ONBOARDING_IMAGES[onboardingSlideIndex];
+  const isLastSlide = onboardingSlideIndex === ONBOARDING_IMAGES.length - 1;
+  const indicator = ONBOARDING_IMAGES.map((_, index) => `
+    <span class="onboarding-guide__dot ${index === onboardingSlideIndex ? "onboarding-guide__dot--active" : ""}">
+      ${index === onboardingSlideIndex ? "●" : "○"}
+    </span>
+  `).join("");
+  const primaryLabel = items.length === 0 ? "サンプルデータを入れる" : "閉じる";
+
+  element.innerHTML = `
+    <div
+      class="onboarding-guide__panel"
+      onclick="handleOnboardingPanelTap(event)"
+      ontouchstart="handleOnboardingTouchStart(event)"
+      ontouchend="handleOnboardingTouchEnd(event)"
+    >
+      <div class="onboarding-guide__image-wrap">
+        <img src="${escapeHtml(slideImage)}" alt="" class="onboarding-guide__image" />
+      </div>
+      <div class="onboarding-guide__body">
+        <div class="onboarding-guide__indicator" aria-label="${onboardingSlideIndex + 1} / ${ONBOARDING_IMAGES.length}">
+          ${indicator}
+        </div>
+      </div>
+      <div class="onboarding-guide__actions ${isLastSlide ? "" : "onboarding-guide__actions--spacer"}">
+        ${isLastSlide ? `
+          <button type="button" class="btn btn--primary onboarding-guide__primary" onclick="handleOnboardingPrimaryAction()">
+            ${primaryLabel}
+          </button>
+          ${items.length === 0 ? `
+            <button type="button" class="onboarding-guide__secondary" onclick="skipOnboardingGuide()">
+              あとで自分で登録する
+            </button>
+          ` : ""}
+        ` : `
+          <div class="onboarding-guide__action-placeholder" aria-hidden="true"></div>
+        `}
+      </div>
+    </div>
+  `;
+}
+
+function openOnboardingGuide() {
+  appMenuOpen = false;
+  onboardingOpen = true;
+  onboardingSlideIndex = 0;
+  document.body.classList.add("body--modal-open");
+  renderTabs();
+  renderOnboardingGuide();
+  getOnboardingElement().classList.add("onboarding-guide--open");
+}
+
+function closeOnboardingGuide(options = {}) {
+  const { saveCompleted = true } = options;
+  if (saveCompleted) {
+    saveOnboardingCompleted();
+  }
+  onboardingOpen = false;
+  const element = document.getElementById("onboarding-guide");
+  if (element) {
+    element.classList.remove("onboarding-guide--open");
+    element.innerHTML = "";
+  }
+  document.body.classList.remove("body--modal-open");
+}
+
+function skipOnboardingGuide() {
+  closeOnboardingGuide({ saveCompleted: true });
+}
+
+function handleOnboardingNext() {
+  if (onboardingSlideIndex >= ONBOARDING_IMAGES.length - 1) return;
+  onboardingSlideIndex += 1;
+  renderOnboardingGuide();
+}
+
+function handleOnboardingBack() {
+  if (onboardingSlideIndex <= 0) return;
+  onboardingSlideIndex -= 1;
+  renderOnboardingGuide();
+}
+
+function isOnboardingInteractiveTarget(target) {
+  return Boolean(target?.closest?.("button, a, input, select, textarea, label, [role='button']"));
+}
+
+function navigateOnboardingByDirection(direction) {
+  if (direction === "next") {
+    if (onboardingSlideIndex < ONBOARDING_IMAGES.length - 1) {
+      handleOnboardingNext();
+    }
+    return;
+  }
+  if (direction === "previous" && onboardingSlideIndex > 0) {
+    handleOnboardingBack();
+  }
+}
+
+function handleOnboardingPanelTap(event) {
+  if (!onboardingOpen || isOnboardingInteractiveTarget(event.target)) return;
+  const panel = event.currentTarget;
+  const rect = panel.getBoundingClientRect();
+  const x = event.clientX - rect.left;
+  navigateOnboardingByDirection(x > rect.width / 2 ? "next" : "previous");
+}
+
+function handleOnboardingTouchStart(event) {
+  const touch = event.changedTouches?.[0];
+  if (!touch) return;
+  onboardingTouchStartX = touch.clientX;
+  onboardingTouchStartY = touch.clientY;
+}
+
+function handleOnboardingTouchEnd(event) {
+  if (!onboardingOpen || isOnboardingInteractiveTarget(event.target)) {
+    onboardingTouchStartX = null;
+    onboardingTouchStartY = null;
+    return;
+  }
+  const touch = event.changedTouches?.[0];
+  if (!touch || onboardingTouchStartX === null || onboardingTouchStartY === null) return;
+
+  const deltaX = touch.clientX - onboardingTouchStartX;
+  const deltaY = touch.clientY - onboardingTouchStartY;
+  onboardingTouchStartX = null;
+  onboardingTouchStartY = null;
+
+  if (Math.abs(deltaX) < 42 || Math.abs(deltaX) < Math.abs(deltaY) * 1.25) return;
+  event.preventDefault();
+  navigateOnboardingByDirection(deltaX < 0 ? "next" : "previous");
+}
+
+function handleOnboardingPrimaryAction() {
+  if (onboardingSlideIndex !== ONBOARDING_IMAGES.length - 1) {
+    return;
+  }
+
+  const shouldRegisterSampleItems = items.length === 0;
+  closeOnboardingGuide({ saveCompleted: true });
+  if (shouldRegisterSampleItems) {
+    handleRegisterSampleItems();
+    activeTab = "list";
+    shoppingMode = "select";
+    document.body.classList.toggle("shopping-mode", false);
+    renderAll();
+    return;
+  }
+  renderAll();
+}
+
+function maybeAutoShowOnboarding() {
+  if (!shouldAutoShowOnboarding()) return;
+  window.setTimeout(() => openOnboardingGuide(), 0);
 }
 
 function getPurchasedUndoElement() {
@@ -2613,4 +2810,5 @@ document.addEventListener("DOMContentLoaded", () => {
   );
 
   renderInitialApp();
+  maybeAutoShowOnboarding();
 });
