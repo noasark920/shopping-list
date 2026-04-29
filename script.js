@@ -7,34 +7,31 @@ const STORAGE_KEYS = {
   onboardingCompleted: "shoppingList_onboardingCompleted",
 };
 
-const APP_VERSION = "1.4.26";
+const APP_VERSION = "1.4.27";
 const BACKUP_VERSION = "1.4.0";
 const SHOPPING_TOGGLE_LOCK_MS = 500;
 const MISSION_COUNTDOWN_DISPLAY_MS = 1100;
-const SAMPLE_CATEGORY_NAMES = ["買い物", "持ち物", "タスク"];
-const SAMPLE_ITEM_NAMES = [
-  "バナナ",
-  "りんご",
-  "ブロッコリー",
-  "トマト",
-  "玉ねぎ",
-  "にんじん",
-  "きのこ",
-  "鶏むね肉",
-  "豚バラ肉",
-  "魚",
-  "卵",
-  "牛乳",
-  "豆腐",
-  "納豆",
-  "ヨーグルト",
-  "味噌",
-  "ポン酢",
-  "麦茶",
-  "洗濯洗剤",
-  "トイレットペーパー",
+const SAMPLE_CATEGORY_NAMES = ["買い物", "持ち物", "毎日の習慣"];
+const SAMPLE_ITEMS = [
+  { name: "牛乳", categoryName: "買い物" },
+  { name: "卵", categoryName: "買い物" },
+  { name: "玉ねぎ", categoryName: "買い物" },
+  { name: "にんじん", categoryName: "買い物" },
+  { name: "バナナ", categoryName: "買い物" },
+  { name: "ヨーグルト", categoryName: "買い物" },
+  { name: "トイレットペーパー", categoryName: "買い物" },
+  { name: "洗濯洗剤", categoryName: "買い物" },
+  { name: "財布", categoryName: "持ち物" },
+  { name: "スマホ", categoryName: "持ち物" },
+  { name: "鍵", categoryName: "持ち物" },
+  { name: "イヤホン", categoryName: "持ち物" },
+  { name: "水筒", categoryName: "持ち物" },
+  { name: "10分読書する", categoryName: "毎日の習慣" },
+  { name: "15分日記を書く", categoryName: "毎日の習慣" },
+  { name: "5分瞑想する", categoryName: "毎日の習慣" },
+  { name: "寝る前にストレッチする", categoryName: "毎日の習慣" },
+  { name: "5000歩/日、歩く", categoryName: "毎日の習慣" },
 ];
-const SAMPLE_ITEM_CATEGORY_NAME = "買い物";
 
 const ONBOARDING_IMAGES = [
   "./img/onboarding1.webp",
@@ -1481,7 +1478,7 @@ function showMemoryRegistrationConfirm(slot) {
         type="text"
         maxlength="20"
         value="${escapeHtml(currentName)}"
-        placeholder="メモリ名を入力（例：毎日用）"
+        placeholder="メモリ名を入力（例：買い物）"
       />
     `,
   });
@@ -1592,23 +1589,23 @@ function handleRegisterSampleItems(button) {
   sampleItemRegistrationInProgress = true;
   if (button) button.disabled = true;
 
-  const category = ensureCategoryByName(SAMPLE_ITEM_CATEGORY_NAME);
-  if (!category) {
-    sampleItemRegistrationInProgress = false;
-    if (button) button.disabled = false;
-    showToast("サンプル項目を登録できませんでした。", "error");
-    return;
-  }
-
   let nextSortOrder = getNextSortOrder(items);
-  SAMPLE_ITEM_NAMES.forEach(name => {
-    addItem(name, category.id, nextSortOrder);
+  for (const sampleItem of SAMPLE_ITEMS) {
+    const category = ensureCategoryByName(sampleItem.categoryName);
+    if (!category) {
+      sampleItemRegistrationInProgress = false;
+      if (button) button.disabled = false;
+      showToast("サンプル項目を登録できませんでした。", "error");
+      return;
+    }
+
+    addItem(sampleItem.name, category.id, nextSortOrder);
     nextSortOrder += 10;
-  });
+  }
 
   sampleItemRegistrationInProgress = false;
   renderAll();
-  showToast("20件の項目を登録しました", "success");
+  showToast("18件のサンプル項目を登録しました", "success");
 }
 
 function renderCategoriesTab() {
