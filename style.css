@@ -1163,7 +1163,7 @@ span.free-memo-row__text {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 4px;
+  padding: 0;
   background: rgba(3, 5, 12, 0.92);
   backdrop-filter: blur(8px);
   opacity: 0;
@@ -1181,8 +1181,9 @@ span.free-memo-row__text {
 .onboarding-guide__panel {
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto auto;
-  width: min(calc(100vw - 8px), 520px);
-  max-height: calc(100vh - 8px);
+  width: min(100vw, 540px);
+  max-height: 100vh;
+  max-height: 100dvh;
   padding: 0 0 10px;
   border: 0;
   border-radius: 20px;
@@ -1196,6 +1197,7 @@ span.free-memo-row__text {
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 100%;
   min-height: 0;
   overflow: hidden;
   border-radius: 0;
@@ -1205,9 +1207,11 @@ span.free-memo-row__text {
 .onboarding-guide__image {
   display: block;
   width: 100%;
+  min-width: 100%;
   max-width: none;
   height: auto;
-  max-height: calc(100vh - 140px);
+  max-height: calc(100vh - 126px);
+  max-height: calc(100dvh - 126px);
   object-fit: contain;
 }
 
@@ -1569,15 +1573,17 @@ span.free-memo-row__text {
   .modal__box { padding: 20px; }
   .toast { white-space: normal; text-align: center; }
   .onboarding-guide {
-    padding: 3px;
+    padding: 0;
   }
   .onboarding-guide__panel {
-    width: calc(100vw - 6px);
-    max-height: calc(100vh - 6px);
+    width: 100vw;
+    max-height: 100vh;
+    max-height: 100dvh;
     padding: 0 0 9px;
   }
   .onboarding-guide__image {
-    max-height: calc(100vh - 134px);
+    max-height: calc(100vh - 118px);
+    max-height: calc(100dvh - 118px);
   }
   .onboarding-guide__body {
     padding: 12px 14px 0;

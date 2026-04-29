@@ -7,7 +7,7 @@ const STORAGE_KEYS = {
   onboardingCompleted: "shoppingList_onboardingCompleted",
 };
 
-const APP_VERSION = "1.4.25";
+const APP_VERSION = "1.4.26";
 const BACKUP_VERSION = "1.4.0";
 const SHOPPING_TOGGLE_LOCK_MS = 500;
 const MISSION_COUNTDOWN_DISPLAY_MS = 1100;
