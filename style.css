@@ -510,22 +510,13 @@ body.body--purchased-undo-visible .app {
 }
 
 .preparation-filter {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  display: block;
   width: 100%;
 }
 
-.preparation-filter__label {
-  flex-shrink: 0;
-  color: var(--color-text-muted);
-  font-size: 0.82rem;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
 .preparation-filter__select {
-  flex: 1;
+  display: block;
+  width: 100%;
   min-width: 0;
   min-height: 38px;
   padding: 7px 10px;

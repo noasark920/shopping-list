@@ -7,7 +7,7 @@ const STORAGE_KEYS = {
   onboardingCompleted: "shoppingList_onboardingCompleted",
 };
 
-const APP_VERSION = "1.4.27";
+const APP_VERSION = "1.4.28";
 const BACKUP_VERSION = "1.4.0";
 const SHOPPING_TOGGLE_LOCK_MS = 500;
 const MISSION_COUNTDOWN_DISPLAY_MS = 1100;
@@ -2545,7 +2545,7 @@ function renderPreparationControlPanel() {
   if (shoppingMode !== "select") return "";
   normalizePreparationCategoryFilter();
   const filterOptions = [
-    `<option value="all" ${preparationCategoryFilter === "all" ? "selected" : ""}>すべて</option>`,
+    `<option value="all" ${preparationCategoryFilter === "all" ? "selected" : ""}>すべてのカテゴリ</option>`,
     ...getSortedCategories().map(category => `
       <option value="${escapeHtml(category.id)}" ${preparationCategoryFilter === category.id ? "selected" : ""}>${escapeHtml(category.name)}</option>
     `),
@@ -2553,7 +2553,6 @@ function renderPreparationControlPanel() {
   ].join("");
   const categoryFilter = `
       <label class="preparation-filter">
-        <span class="preparation-filter__label">カテゴリ：</span>
         <select class="preparation-filter__select" aria-label="カテゴリで絞り込み" onchange="handlePreparationCategoryFilterChange(this.value)">
           ${filterOptions}
         </select>
