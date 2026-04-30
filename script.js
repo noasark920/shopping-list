@@ -8,10 +8,12 @@ const STORAGE_KEYS = {
   threeColumnHelpShown: "checklist_3col_help_shown",
 };
 
-const APP_VERSION = "1.4.31";
+const APP_VERSION = "1.4.32";
 const BACKUP_VERSION = "1.4.0";
 const SHOPPING_TOGGLE_LOCK_MS = 500;
 const MISSION_COUNTDOWN_DISPLAY_MS = 1100;
+const THREE_COLUMN_NEXT_GUIDE_DELAY_MS = 180;
+const THREE_COLUMN_NEXT_GUIDE_DURATION_MS = 1000;
 const SAMPLE_CATEGORY_NAMES = ["買い物", "持ち物", "毎日の習慣"];
 const SAMPLE_ITEMS = [
   { name: "牛乳", categoryName: "買い物" },
@@ -74,6 +76,9 @@ let missionCountdownTimer = null;
 let shoppingToggleLockedUntil = 0;
 let shoppingToggleLockTimer = null;
 let pendingShoppingTapAnimation = null;
+let pendingThreeColumnNextGuide = null;
+let threeColumnNextGuideTimer = null;
+let threeColumnNextGuideClearTimer = null;
 let sampleCategoryRegistrationInProgress = false;
 let sampleItemRegistrationInProgress = false;
 let onboardingOpen = false;
@@ -2277,6 +2282,96 @@ function applyPendingShoppingTapAnimation() {
   });
 }
 
+function clearThreeColumnNextGuideTimers() {
+  if (threeColumnNextGuideTimer) {
+    clearTimeout(threeColumnNextGuideTimer);
+    threeColumnNextGuideTimer = null;
+  }
+  if (threeColumnNextGuideClearTimer) {
+    clearTimeout(threeColumnNextGuideClearTimer);
+    threeColumnNextGuideClearTimer = null;
+  }
+}
+
+function clearThreeColumnNextGuideHighlight() {
+  document.querySelectorAll(".list-row--next-guide").forEach(row => {
+    row.classList.remove("list-row--next-guide");
+  });
+}
+
+function findNextUncheckedItemIdInSortedOrder(currentId) {
+  if (shoppingMode !== "shopping" || getDisplayColumns() !== 3) return null;
+
+  const displayItems = getSortedItems().filter(item => item.selectedForShopping);
+  const currentIndex = displayItems.findIndex(item => item.id === currentId);
+  if (currentIndex === -1) return null;
+
+  const nextItem = displayItems.slice(currentIndex + 1).find(item => !item.purchased);
+  return nextItem ? nextItem.id : null;
+}
+
+function findFirstUncheckedRenderedThreeColumnItemId(clickedId) {
+  const row = [...document.querySelectorAll(".list-table--triple .list-row")]
+    .find(element => element.dataset.id !== clickedId && !element.classList.contains("list-row--purchased"));
+  return row ? row.dataset.id : null;
+}
+
+function queueThreeColumnNextGuide(guide) {
+  if (shoppingMode !== "shopping" || getDisplayColumns() !== 3 || !guide) {
+    pendingThreeColumnNextGuide = null;
+    clearThreeColumnNextGuideTimers();
+    clearThreeColumnNextGuideHighlight();
+    return;
+  }
+  if (window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches) {
+    pendingThreeColumnNextGuide = null;
+    clearThreeColumnNextGuideTimers();
+    clearThreeColumnNextGuideHighlight();
+    return;
+  }
+
+  pendingThreeColumnNextGuide = guide;
+}
+
+function applyPendingThreeColumnNextGuide() {
+  if (shoppingMode !== "shopping" || getDisplayColumns() !== 3) {
+    pendingThreeColumnNextGuide = null;
+    clearThreeColumnNextGuideTimers();
+    clearThreeColumnNextGuideHighlight();
+    return;
+  }
+  if (!pendingThreeColumnNextGuide) return;
+
+  const guide = pendingThreeColumnNextGuide;
+  pendingThreeColumnNextGuide = null;
+  const delay = guide.type === "first-unchecked-after-render" ? THREE_COLUMN_NEXT_GUIDE_DELAY_MS : 0;
+
+  clearThreeColumnNextGuideTimers();
+  clearThreeColumnNextGuideHighlight();
+  threeColumnNextGuideTimer = setTimeout(() => {
+    threeColumnNextGuideTimer = null;
+    if (shoppingMode !== "shopping" || getDisplayColumns() !== 3) return;
+
+    const itemId = guide.type === "first-unchecked-after-render"
+      ? findFirstUncheckedRenderedThreeColumnItemId(guide.clickedId)
+      : guide.itemId;
+    if (!itemId || itemId === guide.clickedId) return;
+
+    const row = [...document.querySelectorAll(".list-table--triple .list-row")]
+      .find(element => element.dataset.id === itemId);
+    if (!row || row.classList.contains("list-row--purchased")) return;
+
+    row.classList.remove("list-row--next-guide");
+    requestAnimationFrame(() => {
+      row.classList.add("list-row--next-guide");
+      threeColumnNextGuideClearTimer = setTimeout(() => {
+        row.classList.remove("list-row--next-guide");
+        threeColumnNextGuideClearTimer = null;
+      }, THREE_COLUMN_NEXT_GUIDE_DURATION_MS);
+    });
+  }, delay);
+}
+
 function handleTogglePurchased(id) {
   if (isShoppingPurchaseToggleLocked()) return;
   const item = items.find(entry => entry.id === id);
@@ -2288,6 +2383,15 @@ function handleTogglePurchased(id) {
   if (item.purchased !== previousPurchased) {
     lockShoppingPurchaseToggles();
     queueShoppingTapAnimation("item", id);
+    if (item.purchased) {
+      const nextGuideItemId = settings.movePurchasedToBottom === false
+        ? findNextUncheckedItemIdInSortedOrder(id)
+        : null;
+      queueThreeColumnNextGuide(settings.movePurchasedToBottom === false
+        ? (nextGuideItemId ? { type: "target", itemId: nextGuideItemId, clickedId: id } : null)
+        : { type: "first-unchecked-after-render", clickedId: id }
+      );
+    }
     if (item.purchased && wasAllUnchecked) {
       prepareMissionRewardForShoppingStart();
     }
@@ -2852,6 +2956,7 @@ function renderListTab(options = {}) {
 
   container.innerHTML = html;
   applyPendingShoppingTapAnimation();
+  applyPendingThreeColumnNextGuide();
 }
 
 function handleTabClick(tab) {

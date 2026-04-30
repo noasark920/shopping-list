@@ -817,3 +817,21 @@ PWA更新反映の安定性も強化し、実運用品質を高めた版。
 - Existing 1-column / 2-column / 3-column display behavior is unchanged.
 - Existing item order, sortOrder, and localStorage data compatibility are unchanged.
 - The help can still be reopened manually from the “?” button.
+
+## v1.4.32 Three Column Flow Guidance Draft
+
+### Completed
+- Added a temporary next-item visual guide after checking an item in 3-column mode.
+- Delayed the guide slightly when completed items move downward so it appears after re-render.
+- When completed items move downward, the first unchecked card in the newly rendered 3-column grid is highlighted.
+- When completed items stay in place, the next unchecked item is determined from the internal sorted item order, not the visual zigzag layout.
+- Completed items are skipped and no highlight is shown when no valid unchecked target remains.
+- Added a subtle animation to the existing 3-column row guide arrows.
+- Updated APP_VERSION to 1.4.32.
+- Updated service-worker cache version.
+
+### Notes
+- Effects are gated to 3-column shopping mode only.
+- 1-column and 2-column display behavior is unchanged.
+- Existing zigzag order, sortOrder, and localStorage data structure are unchanged.
+- Existing 3-column help tooltip and first-use modal behavior is unchanged.
