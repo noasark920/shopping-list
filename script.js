@@ -5,9 +5,10 @@ const STORAGE_KEYS = {
   freeMemos: "shoppingList_freeMemos",
   selectionMemories: "shoppingSelectionMemories",
   onboardingCompleted: "shoppingList_onboardingCompleted",
+  threeColumnHelpShown: "checklist_3col_help_shown",
 };
 
-const APP_VERSION = "1.4.30";
+const APP_VERSION = "1.4.31";
 const BACKUP_VERSION = "1.4.0";
 const SHOPPING_TOGGLE_LOCK_MS = 500;
 const MISSION_COUNTDOWN_DISPLAY_MS = 1100;
@@ -54,6 +55,7 @@ let shoppingMode = "shopping";
 let preparationCategoryFilter = "all";
 let shoppingModeHelpOpen = false;
 let categoryLabelSettingHelpOpen = false;
+let threeColumnHelpTooltipOpen = false;
 let itemDeleteMode = false;
 let categoryDeleteMode = false;
 let selectedCategoryIds = new Set();
@@ -1846,6 +1848,9 @@ function toggleCategoryLabelSettingHelp(event) {
   event.preventDefault();
   event.stopPropagation();
   categoryLabelSettingHelpOpen = !categoryLabelSettingHelpOpen;
+  if (categoryLabelSettingHelpOpen) {
+    threeColumnHelpTooltipOpen = false;
+  }
   renderTabs();
   if (categoryLabelSettingHelpOpen) {
     requestAnimationFrame(positionCategoryLabelSettingTooltip);
@@ -1858,11 +1863,42 @@ function closeCategoryLabelSettingHelp() {
   renderTabs();
 }
 
+function toggleThreeColumnHelpTooltip(event) {
+  event.preventDefault();
+  event.stopPropagation();
+  threeColumnHelpTooltipOpen = !threeColumnHelpTooltipOpen;
+  if (threeColumnHelpTooltipOpen) {
+    categoryLabelSettingHelpOpen = false;
+  }
+  renderTabs();
+  if (threeColumnHelpTooltipOpen) {
+    requestAnimationFrame(positionThreeColumnHelpTooltip);
+  }
+}
+
+function closeThreeColumnHelpTooltip() {
+  if (!threeColumnHelpTooltipOpen) return;
+  threeColumnHelpTooltipOpen = false;
+  renderTabs();
+}
+
 function positionCategoryLabelSettingTooltip() {
-  const trigger = document.querySelector(".app-menu__setting-help");
+  const trigger = document.getElementById("category-label-setting-help");
   const tooltip = document.getElementById("category-label-setting-tooltip");
   if (!trigger || !tooltip || !categoryLabelSettingHelpOpen) return;
 
+  positionAppMenuTooltip(trigger, tooltip);
+}
+
+function positionThreeColumnHelpTooltip() {
+  const trigger = document.getElementById("display-columns-setting-help");
+  const tooltip = document.getElementById("three-column-help-tooltip");
+  if (!trigger || !tooltip || !threeColumnHelpTooltipOpen) return;
+
+  positionAppMenuTooltip(trigger, tooltip);
+}
+
+function positionAppMenuTooltip(trigger, tooltip) {
   const margin = 12;
   const triggerRect = trigger.getBoundingClientRect();
   const tooltipRect = tooltip.getBoundingClientRect();
@@ -1872,6 +1908,20 @@ function positionCategoryLabelSettingTooltip() {
 
   tooltip.style.left = `${left}px`;
   tooltip.style.top = `${triggerRect.bottom + 8}px`;
+}
+
+function hasThreeColumnHelpShown() {
+  return localStorage.getItem(STORAGE_KEYS.threeColumnHelpShown) === "true";
+}
+
+function markThreeColumnHelpShown() {
+  localStorage.setItem(STORAGE_KEYS.threeColumnHelpShown, "true");
+}
+
+function showThreeColumnHelpModalOnce() {
+  if (hasThreeColumnHelpShown()) return;
+  markThreeColumnHelpShown();
+  openModal("three-column-help-modal");
 }
 
 function handleSelectionMemoryPressStart(slot) {
@@ -2181,6 +2231,9 @@ function handleDisplayColumnsSettingChange(value) {
   settings.displayColumns = normalizeDisplayColumnsSetting(value);
   saveAppSettings();
   renderListTab();
+  if (settings.displayColumns === 3) {
+    showThreeColumnHelpModalOnce();
+  }
 }
 
 function isShoppingPurchaseToggleLocked() {
@@ -2471,13 +2524,21 @@ function renderTabs(options = {}) {
   if (menuDropdown) {
     menuDropdown.classList.toggle("app-menu__dropdown--open", appMenuOpen);
   }
-  const categoryLabelHelpButton = document.querySelector(".app-menu__setting-help");
+  const categoryLabelHelpButton = document.getElementById("category-label-setting-help");
   const categoryLabelTooltip = document.getElementById("category-label-setting-tooltip");
   if (categoryLabelHelpButton) {
     categoryLabelHelpButton.setAttribute("aria-expanded", categoryLabelSettingHelpOpen ? "true" : "false");
   }
   if (categoryLabelTooltip) {
     categoryLabelTooltip.classList.toggle("app-menu__setting-tooltip--open", categoryLabelSettingHelpOpen);
+  }
+  const threeColumnHelpButton = document.getElementById("display-columns-setting-help");
+  const threeColumnHelpTooltip = document.getElementById("three-column-help-tooltip");
+  if (threeColumnHelpButton) {
+    threeColumnHelpButton.setAttribute("aria-expanded", threeColumnHelpTooltipOpen ? "true" : "false");
+  }
+  if (threeColumnHelpTooltip) {
+    threeColumnHelpTooltip.classList.toggle("app-menu__setting-tooltip--open", threeColumnHelpTooltipOpen);
   }
   const categoryLabelSetting = document.getElementById("setting-show-category-labels");
   if (categoryLabelSetting) {
@@ -2825,10 +2886,18 @@ function setupAppMenu() {
 
   document.addEventListener("click", event => {
     const tooltip = document.getElementById("category-label-setting-tooltip");
-    const helpButton = document.querySelector(".app-menu__setting-help");
+    const helpButton = document.getElementById("category-label-setting-help");
     if (!categoryLabelSettingHelpOpen) return;
     if (tooltip?.contains(event.target) || helpButton?.contains(event.target)) return;
     closeCategoryLabelSettingHelp();
+  });
+
+  document.addEventListener("click", event => {
+    const tooltip = document.getElementById("three-column-help-tooltip");
+    const helpButton = document.getElementById("display-columns-setting-help");
+    if (!threeColumnHelpTooltipOpen) return;
+    if (tooltip?.contains(event.target) || helpButton?.contains(event.target)) return;
+    closeThreeColumnHelpTooltip();
   });
 }
 

@@ -84,6 +84,7 @@
               />
               <span>カテゴリ名を表示</span>
               <button
+                id="category-label-setting-help"
                 class="app-menu__setting-help"
                 type="button"
                 aria-label="カテゴリ名表示設定の説明を表示"
@@ -102,7 +103,19 @@
               <span>完了済みを下へ移動</span>
             </label>
             <div class="app-menu__setting app-menu__setting--columns" role="group" aria-label="表示列数">
-              <span class="app-menu__setting-label">表示列数</span>
+              <div class="app-menu__setting-label-row">
+                <span class="app-menu__setting-label">表示列数</span>
+                <button
+                  id="display-columns-setting-help"
+                  class="app-menu__setting-help"
+                  type="button"
+                  aria-label="3列表示の見方を表示"
+                  aria-expanded="false"
+                  onclick="toggleThreeColumnHelpTooltip(event)"
+                >
+                  ?
+                </button>
+              </div>
               <div class="app-menu__segmented" aria-label="項目リストの表示列数">
                 <label class="app-menu__segment">
                   <input
@@ -137,6 +150,11 @@
           <div id="category-label-setting-tooltip" class="app-menu__setting-tooltip" role="tooltip">
             準備モード・実行モードの項目にカテゴリ名を表示します。<br />
             項目管理では、確認のため常にカテゴリ名を表示します。
+          </div>
+          <div id="three-column-help-tooltip" class="app-menu__setting-tooltip app-menu__setting-tooltip--media" role="tooltip">
+            <strong class="three-column-help__title">3列表示の見方</strong>
+            <img class="three-column-help__image" src="img/3colum_help.webp" alt="3列表示のチェック順" />
+            <span class="three-column-help__text">矢印の順にチェックします</span>
           </div>
           <div class="app-menu__section">
             <div class="app-menu__section-title">データ管理</div>
@@ -295,6 +313,17 @@
       <div class="modal__actions">
         <button type="button" class="btn btn--ghost" onclick="closeCategoryBulkModal()">キャンセル</button>
         <button type="button" class="btn btn--primary" onclick="handleBulkAddCategories()">追加する</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="three-column-help-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="three-column-help-modal-title">
+    <div class="modal__box modal__box--sm modal__box--help">
+      <h2 id="three-column-help-modal-title" class="modal__title three-column-help__title">3列表示の見方</h2>
+      <img class="three-column-help__image" src="img/3colum_help.webp" alt="3列表示のチェック順" />
+      <p class="three-column-help__text">矢印の順にチェックします</p>
+      <div class="modal__actions modal__actions--compact">
+        <button type="button" class="btn btn--primary" onclick="closeModal('three-column-help-modal')">OK</button>
       </div>
     </div>
   </div>

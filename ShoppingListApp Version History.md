@@ -801,3 +801,19 @@ PWA更新反映の安定性も強化し、実運用品質を高めた版。
 - zigzag表示順への影響なし
 - 行間ガイド矢印への影響なし
 - 保存データへの影響なし
+
+## v1.4.31 Three Column Help Guide
+
+### Completed
+- Added a “?” help button next to the display column setting.
+- Added a help tooltip explaining the 3-column zigzag reading order.
+- Added a one-time modal that appears when 3-column mode is selected for the first time.
+- Used img/3colum_help.webp as the visual guide.
+- Saved the one-time help display state in localStorage.
+- Updated APP_VERSION to 1.4.31.
+- Updated service-worker cache version.
+
+### Notes
+- Existing 1-column / 2-column / 3-column display behavior is unchanged.
+- Existing item order, sortOrder, and localStorage data compatibility are unchanged.
+- The help can still be reopened manually from the “?” button.

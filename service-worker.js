@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'shopping-list-v48';
+const CACHE_VERSION = 'shopping-list-v49';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -24,6 +24,7 @@ const ASSETS_TO_CACHE = [
   './img/onboarding2.webp',
   './img/onboarding3.webp',
   './img/onboarding4.webp',
+  './img/3colum_help.webp',
   './img/angles-down-solid-full.svg'
 ];
 
