@@ -101,6 +101,16 @@
                 onchange="handleToggleMovePurchasedToBottomSetting(this.checked)"
               />
               <span>完了済みを下へ移動</span>
+              <button
+                id="move-purchased-setting-help"
+                class="app-menu__setting-help"
+                type="button"
+                aria-label="完了済み移動設定の説明を表示"
+                aria-expanded="false"
+                onclick="toggleMovePurchasedSettingHelp(event)"
+              >
+                ?
+              </button>
             </label>
             <div class="app-menu__setting app-menu__setting--columns" role="group" aria-label="表示列数">
               <div class="app-menu__setting-label-row">
@@ -150,6 +160,10 @@
           <div id="category-label-setting-tooltip" class="app-menu__setting-tooltip" role="tooltip">
             準備モード・実行モードの項目にカテゴリ名を表示します。<br />
             項目管理では、確認のため常にカテゴリ名を表示します。
+          </div>
+          <div id="move-purchased-setting-tooltip" class="app-menu__setting-tooltip" role="tooltip">
+            チェック後に完了済み項目を下へ移動します。<br />
+            OFFでは位置を固定します。
           </div>
           <div id="three-column-help-tooltip" class="app-menu__setting-tooltip app-menu__setting-tooltip--media" role="tooltip">
             <strong class="three-column-help__title">3列表示の見方</strong>

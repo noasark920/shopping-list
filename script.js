@@ -8,7 +8,7 @@ const STORAGE_KEYS = {
   threeColumnHelpShown: "checklist_3col_help_shown",
 };
 
-const APP_VERSION = "1.4.32";
+const APP_VERSION = "1.4.33";
 const BACKUP_VERSION = "1.4.0";
 const SHOPPING_TOGGLE_LOCK_MS = 500;
 const MISSION_COUNTDOWN_DISPLAY_MS = 1100;
@@ -57,6 +57,7 @@ let shoppingMode = "shopping";
 let preparationCategoryFilter = "all";
 let shoppingModeHelpOpen = false;
 let categoryLabelSettingHelpOpen = false;
+let movePurchasedSettingHelpOpen = false;
 let threeColumnHelpTooltipOpen = false;
 let itemDeleteMode = false;
 let categoryDeleteMode = false;
@@ -1854,6 +1855,7 @@ function toggleCategoryLabelSettingHelp(event) {
   event.stopPropagation();
   categoryLabelSettingHelpOpen = !categoryLabelSettingHelpOpen;
   if (categoryLabelSettingHelpOpen) {
+    movePurchasedSettingHelpOpen = false;
     threeColumnHelpTooltipOpen = false;
   }
   renderTabs();
@@ -1868,12 +1870,33 @@ function closeCategoryLabelSettingHelp() {
   renderTabs();
 }
 
+function toggleMovePurchasedSettingHelp(event) {
+  event.preventDefault();
+  event.stopPropagation();
+  movePurchasedSettingHelpOpen = !movePurchasedSettingHelpOpen;
+  if (movePurchasedSettingHelpOpen) {
+    categoryLabelSettingHelpOpen = false;
+    threeColumnHelpTooltipOpen = false;
+  }
+  renderTabs();
+  if (movePurchasedSettingHelpOpen) {
+    requestAnimationFrame(positionMovePurchasedSettingTooltip);
+  }
+}
+
+function closeMovePurchasedSettingHelp() {
+  if (!movePurchasedSettingHelpOpen) return;
+  movePurchasedSettingHelpOpen = false;
+  renderTabs();
+}
+
 function toggleThreeColumnHelpTooltip(event) {
   event.preventDefault();
   event.stopPropagation();
   threeColumnHelpTooltipOpen = !threeColumnHelpTooltipOpen;
   if (threeColumnHelpTooltipOpen) {
     categoryLabelSettingHelpOpen = false;
+    movePurchasedSettingHelpOpen = false;
   }
   renderTabs();
   if (threeColumnHelpTooltipOpen) {
@@ -1891,6 +1914,14 @@ function positionCategoryLabelSettingTooltip() {
   const trigger = document.getElementById("category-label-setting-help");
   const tooltip = document.getElementById("category-label-setting-tooltip");
   if (!trigger || !tooltip || !categoryLabelSettingHelpOpen) return;
+
+  positionAppMenuTooltip(trigger, tooltip);
+}
+
+function positionMovePurchasedSettingTooltip() {
+  const trigger = document.getElementById("move-purchased-setting-help");
+  const tooltip = document.getElementById("move-purchased-setting-tooltip");
+  if (!trigger || !tooltip || !movePurchasedSettingHelpOpen) return;
 
   positionAppMenuTooltip(trigger, tooltip);
 }
@@ -2636,6 +2667,14 @@ function renderTabs(options = {}) {
   if (categoryLabelTooltip) {
     categoryLabelTooltip.classList.toggle("app-menu__setting-tooltip--open", categoryLabelSettingHelpOpen);
   }
+  const movePurchasedHelpButton = document.getElementById("move-purchased-setting-help");
+  const movePurchasedTooltip = document.getElementById("move-purchased-setting-tooltip");
+  if (movePurchasedHelpButton) {
+    movePurchasedHelpButton.setAttribute("aria-expanded", movePurchasedSettingHelpOpen ? "true" : "false");
+  }
+  if (movePurchasedTooltip) {
+    movePurchasedTooltip.classList.toggle("app-menu__setting-tooltip--open", movePurchasedSettingHelpOpen);
+  }
   const threeColumnHelpButton = document.getElementById("display-columns-setting-help");
   const threeColumnHelpTooltip = document.getElementById("three-column-help-tooltip");
   if (threeColumnHelpButton) {
@@ -2995,6 +3034,14 @@ function setupAppMenu() {
     if (!categoryLabelSettingHelpOpen) return;
     if (tooltip?.contains(event.target) || helpButton?.contains(event.target)) return;
     closeCategoryLabelSettingHelp();
+  });
+
+  document.addEventListener("click", event => {
+    const tooltip = document.getElementById("move-purchased-setting-tooltip");
+    const helpButton = document.getElementById("move-purchased-setting-help");
+    if (!movePurchasedSettingHelpOpen) return;
+    if (tooltip?.contains(event.target) || helpButton?.contains(event.target)) return;
+    closeMovePurchasedSettingHelp();
   });
 
   document.addEventListener("click", event => {
