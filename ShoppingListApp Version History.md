@@ -835,3 +835,20 @@ PWA更新反映の安定性も強化し、実運用品質を高めた版。
 - 1-column and 2-column display behavior is unchanged.
 - Existing zigzag order, sortOrder, and localStorage data structure are unchanged.
 - Existing 3-column help tooltip and first-use modal behavior is unchanged.
+
+## v1.4.35 Custom Splash Logo Overlay
+
+### Completed
+- Added a custom in-app splash overlay shown immediately after launch.
+- Added img/splash-checkly-logo-v1.webp as the centered splash logo.
+- Used a white full-screen background to match the updated icon/splash visual direction.
+- Added smooth fade-out behavior after initial load.
+- Added a fallback timeout to prevent the splash from staying visible.
+- Added the new splash logo image to the Service Worker cache.
+- Updated APP_VERSION to 1.4.35.
+- Updated Service Worker cache version to shopping-list-v52.
+
+### Notes
+- Native OS/browser PWA splash behavior is not directly modified.
+- The custom splash appears as an in-app overlay after launch.
+- Existing app UI, data structure, localStorage, onboarding, and checklist logic are unchanged.

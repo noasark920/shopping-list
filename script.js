@@ -8,8 +8,11 @@ const STORAGE_KEYS = {
   threeColumnHelpShown: "checklist_3col_help_shown",
 };
 
-const APP_VERSION = "1.4.34";
+const APP_VERSION = "1.4.35";
 const BACKUP_VERSION = "1.4.0";
+const CUSTOM_SPLASH_MIN_DISPLAY_MS = 900;
+const CUSTOM_SPLASH_FADE_MS = 360;
+const CUSTOM_SPLASH_FALLBACK_MS = 2400;
 const SHOPPING_TOGGLE_LOCK_MS = 500;
 const MISSION_COUNTDOWN_DISPLAY_MS = 1100;
 const THREE_COLUMN_NEXT_GUIDE_DELAY_MS = 180;
@@ -3019,6 +3022,37 @@ function closeAppMenu() {
   renderTabs();
 }
 
+function setupCustomSplash() {
+  const splash = document.getElementById("customSplash");
+  if (!splash) return;
+
+  const startedAt = Date.now();
+  let isHiding = false;
+
+  const hideSplash = () => {
+    if (isHiding) return;
+    isHiding = true;
+
+    const elapsed = Date.now() - startedAt;
+    const delay = Math.max(0, CUSTOM_SPLASH_MIN_DISPLAY_MS - elapsed);
+
+    window.setTimeout(() => {
+      splash.classList.add("is-hidden");
+      window.setTimeout(() => {
+        splash.classList.add("is-removed");
+      }, CUSTOM_SPLASH_FADE_MS);
+    }, delay);
+  };
+
+  if (document.readyState === "complete") {
+    hideSplash();
+  } else {
+    window.addEventListener("load", hideSplash, { once: true });
+  }
+
+  window.setTimeout(hideSplash, CUSTOM_SPLASH_FALLBACK_MS);
+}
+
 function setupAppMenu() {
   document.addEventListener("click", event => {
     const menuArea = document.querySelector(".app-menu");
@@ -3060,6 +3094,7 @@ function isStandaloneMode() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  setupCustomSplash();
   setupForms();
   setupModals();
   setupShoppingModeHelp();

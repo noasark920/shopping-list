@@ -39,6 +39,37 @@ body {
 
 body.body--modal-open { overflow: hidden; }
 
+.custom-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: #ffffff;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: none;
+  transition: opacity 360ms ease, visibility 0s linear 360ms;
+}
+
+.custom-splash.is-hidden {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.custom-splash.is-removed {
+  display: none;
+}
+
+.custom-splash-logo {
+  width: min(72vw, 360px);
+  height: auto;
+  max-height: 60vh;
+  display: block;
+}
+
 .app {
   max-width: 680px;
   margin: 0 auto;

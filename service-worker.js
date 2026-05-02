@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'shopping-list-v51';
+const CACHE_VERSION = 'shopping-list-v52';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -7,6 +7,7 @@ const ASSETS_TO_CACHE = [
   './manifest.webmanifest',
   './img/icon-192.png',
   './img/icon-512.png',
+  './img/splash-checkly-logo-v1.webp',
   './img/complete_n.webp',
   './img/complete_r.webp',
   './img/complete_sr.webp',
