@@ -8,7 +8,7 @@ const STORAGE_KEYS = {
   threeColumnHelpShown: "checklist_3col_help_shown",
 };
 
-const APP_VERSION = "1.4.33";
+const APP_VERSION = "1.4.34";
 const BACKUP_VERSION = "1.4.0";
 const SHOPPING_TOGGLE_LOCK_MS = 500;
 const MISSION_COUNTDOWN_DISPLAY_MS = 1100;
