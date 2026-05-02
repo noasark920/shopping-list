@@ -9,7 +9,7 @@ const STORAGE_KEYS = {
   customSplashSeen: "checkly_custom_splash_seen",
 };
 
-const APP_VERSION = "1.4.38";
+const APP_VERSION = "1.4.39";
 const BACKUP_VERSION = "1.4.0";
 const CUSTOM_SPLASH_MIN_DISPLAY_MS = 1800;
 const CUSTOM_SPLASH_FADE_MS = 400;
@@ -1009,7 +1009,6 @@ async function openOnboardingGuide() {
   appMenuOpen = false;
   renderTabs();
   await preloadOnboardingImage(ONBOARDING_IMAGES[0]);
-  preloadOnboardingImages();
   onboardingOpen = true;
   onboardingSlideIndex = 0;
   document.body.classList.add("body--modal-open");
@@ -1121,8 +1120,8 @@ function handleOnboardingPrimaryAction() {
 
 async function maybeAutoShowOnboarding() {
   if (!shouldAutoShowOnboarding()) return;
-  await customSplashReadyPromise;
-  await preloadOnboardingImage(ONBOARDING_IMAGES[0]);
+  const firstImageReadyPromise = preloadOnboardingImage(ONBOARDING_IMAGES[0]);
+  await Promise.all([customSplashReadyPromise, firstImageReadyPromise]);
   window.setTimeout(() => openOnboardingGuide(), 0);
 }
 
@@ -3180,6 +3179,7 @@ function isStandaloneMode() {
 }
 
 setupCustomSplash();
+preloadOnboardingImages();
 
 document.addEventListener("DOMContentLoaded", () => {
   setupForms();

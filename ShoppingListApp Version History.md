@@ -887,3 +887,18 @@ Date: 2026-05-02
 ### Notes
 - Existing onboarding slide count, CTA behavior, completion storage, sample data flow, and checklist logic are unchanged.
 - The custom splash first-launch behavior is unchanged except for sequencing auto-onboarding after splash removal.
+
+## v1.4.39 Onboarding Preload Timing
+Date: 2026-05-02
+
+### Completed
+- Started onboarding image preloading during app startup instead of after the custom splash finishes.
+- Preloaded `onboarding1.webp` through `onboarding4.webp` in parallel while the custom splash is visible.
+- Updated auto-onboarding to wait for both splash completion and the first onboarding image readiness.
+- Reused the existing preload promise for manual onboarding without restarting image loading.
+- Kept the existing preload timeout so onboarding cannot block forever.
+- Updated `APP_VERSION` to `1.4.39`.
+- Updated Service Worker cache version to `shopping-list-v56`.
+
+### Notes
+- Onboarding content, slide count, CTA behavior, sample data behavior, and custom splash first-launch behavior are unchanged.
