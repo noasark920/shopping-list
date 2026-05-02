@@ -43,15 +43,22 @@ body.body--modal-open { overflow: hidden; }
   position: fixed;
   inset: 0;
   z-index: 9999;
-  display: flex;
+  display: none;
   align-items: center;
   justify-content: center;
   padding: 24px;
   background: #ffffff;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 400ms ease, visibility 0s linear 400ms;
+}
+
+.custom-splash.is-visible {
+  display: flex;
   opacity: 1;
   visibility: visible;
-  pointer-events: none;
-  transition: opacity 360ms ease, visibility 0s linear 360ms;
+  transition: opacity 400ms ease;
 }
 
 .custom-splash.is-hidden {

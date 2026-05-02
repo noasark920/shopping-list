@@ -6,13 +6,14 @@ const STORAGE_KEYS = {
   selectionMemories: "shoppingSelectionMemories",
   onboardingCompleted: "shoppingList_onboardingCompleted",
   threeColumnHelpShown: "checklist_3col_help_shown",
+  customSplashSeen: "checkly_custom_splash_seen",
 };
 
-const APP_VERSION = "1.4.35";
+const APP_VERSION = "1.4.36";
 const BACKUP_VERSION = "1.4.0";
-const CUSTOM_SPLASH_MIN_DISPLAY_MS = 900;
-const CUSTOM_SPLASH_FADE_MS = 360;
-const CUSTOM_SPLASH_FALLBACK_MS = 2400;
+const CUSTOM_SPLASH_MIN_DISPLAY_MS = 1800;
+const CUSTOM_SPLASH_FADE_MS = 400;
+const CUSTOM_SPLASH_FALLBACK_MS = 2800;
 const SHOPPING_TOGGLE_LOCK_MS = 500;
 const MISSION_COUNTDOWN_DISPLAY_MS = 1100;
 const THREE_COLUMN_NEXT_GUIDE_DELAY_MS = 180;
@@ -3026,6 +3027,13 @@ function setupCustomSplash() {
   const splash = document.getElementById("customSplash");
   if (!splash) return;
 
+  if (localStorage.getItem(STORAGE_KEYS.customSplashSeen)) {
+    splash.classList.add("is-removed");
+    return;
+  }
+
+  splash.classList.add("is-visible");
+
   const startedAt = Date.now();
   let isHiding = false;
 
@@ -3040,6 +3048,7 @@ function setupCustomSplash() {
       splash.classList.add("is-hidden");
       window.setTimeout(() => {
         splash.classList.add("is-removed");
+        localStorage.setItem(STORAGE_KEYS.customSplashSeen, "true");
       }, CUSTOM_SPLASH_FADE_MS);
     }, delay);
   };
