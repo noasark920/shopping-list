@@ -1503,6 +1503,12 @@ span.free-memo-row__text {
   object-fit: contain;
 }
 
+.onboarding-guide__image-loading {
+  width: 100%;
+  min-height: min(72vh, 520px);
+  background: #ffffff;
+}
+
 .onboarding-guide__body {
   padding: 14px 18px 0;
   text-align: center;

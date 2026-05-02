@@ -870,3 +870,20 @@ Date: 2026-05-02
 - The existing `checkly_custom_splash_seen` key is reused; no new localStorage schema is added.
 - Native PWA splash, onboarding behavior, checklist logic, 3-column logic, and tooltip logic are unchanged.
 - `img/splash-checkly-logo-v1.webp` remains in the Service Worker cache.
+
+## v1.4.38 Onboarding Image Preload Fix
+Date: 2026-05-02
+
+### Completed
+- Added onboarding image preloading for `onboarding1.webp` through `onboarding4.webp`.
+- Waited for the first onboarding image before opening the onboarding modal.
+- Waited for each target slide image before switching slides to avoid blank white cards.
+- Sequenced auto-onboarding after the custom splash has fully disappeared.
+- Added a safe preload timeout so onboarding does not block forever if an image fails.
+- Kept all onboarding images and the splash logo in the Service Worker cache.
+- Updated `APP_VERSION` to `1.4.38`.
+- Updated Service Worker cache version to `shopping-list-v55`.
+
+### Notes
+- Existing onboarding slide count, CTA behavior, completion storage, sample data flow, and checklist logic are unchanged.
+- The custom splash first-launch behavior is unchanged except for sequencing auto-onboarding after splash removal.

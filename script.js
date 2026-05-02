@@ -9,11 +9,12 @@ const STORAGE_KEYS = {
   customSplashSeen: "checkly_custom_splash_seen",
 };
 
-const APP_VERSION = "1.4.37";
+const APP_VERSION = "1.4.38";
 const BACKUP_VERSION = "1.4.0";
 const CUSTOM_SPLASH_MIN_DISPLAY_MS = 1800;
 const CUSTOM_SPLASH_FADE_MS = 400;
 const CUSTOM_SPLASH_FALLBACK_MS = 2800;
+const ONBOARDING_IMAGE_TIMEOUT_MS = 1800;
 const SHOPPING_TOGGLE_LOCK_MS = 500;
 const MISSION_COUNTDOWN_DISPLAY_MS = 1100;
 const THREE_COLUMN_NEXT_GUIDE_DELAY_MS = 180;
@@ -68,6 +69,9 @@ let categoryDeleteMode = false;
 let selectedCategoryIds = new Set();
 let selectedItemIds = new Set();
 let selectionMemories = loadSelectionMemories();
+let customSplashReadyPromise = Promise.resolve();
+const onboardingImageStates = new Map();
+let onboardingImagesPreloadPromise = null;
 let memoryPressTimer = null;
 let memoryLongPressTriggered = false;
 let pendingPurchasedUndo = null;
@@ -883,6 +887,61 @@ function shouldAutoShowOnboarding() {
   return !hasCompletedOnboarding() && items.length === 0;
 }
 
+function preloadOnboardingImage(src, timeoutMs = ONBOARDING_IMAGE_TIMEOUT_MS) {
+  const existing = onboardingImageStates.get(src);
+  if (existing?.promise) return existing.promise;
+
+  const image = new Image();
+  const state = { status: "loading", image, promise: null };
+
+  state.promise = new Promise(resolve => {
+    let settled = false;
+    const settle = status => {
+      if (settled) return;
+      settled = true;
+      state.status = status;
+      resolve(status);
+    };
+
+    const timeoutId = window.setTimeout(() => settle("timeout"), timeoutMs);
+
+    image.onload = () => {
+      window.clearTimeout(timeoutId);
+      if (typeof image.decode === "function") {
+        image.decode().then(
+          () => settle("loaded"),
+          () => settle("loaded")
+        );
+        return;
+      }
+      settle("loaded");
+    };
+
+    image.onerror = () => {
+      window.clearTimeout(timeoutId);
+      settle("error");
+    };
+
+    image.src = src;
+  });
+
+  onboardingImageStates.set(src, state);
+  return state.promise;
+}
+
+function preloadOnboardingImages() {
+  if (!onboardingImagesPreloadPromise) {
+    onboardingImagesPreloadPromise = Promise.all(
+      ONBOARDING_IMAGES.map(src => preloadOnboardingImage(src))
+    );
+  }
+  return onboardingImagesPreloadPromise;
+}
+
+function getOnboardingImageStatus(src) {
+  return onboardingImageStates.get(src)?.status || "idle";
+}
+
 function getOnboardingElement() {
   let element = document.getElementById("onboarding-guide");
   if (!element) {
@@ -902,6 +961,7 @@ function renderOnboardingGuide() {
 
   const element = getOnboardingElement();
   const slideImage = ONBOARDING_IMAGES[onboardingSlideIndex];
+  const imageStatus = getOnboardingImageStatus(slideImage);
   const isLastSlide = onboardingSlideIndex === ONBOARDING_IMAGES.length - 1;
   const indicator = ONBOARDING_IMAGES.map((_, index) => `
     <span class="onboarding-guide__dot ${index === onboardingSlideIndex ? "onboarding-guide__dot--active" : ""}">
@@ -918,7 +978,9 @@ function renderOnboardingGuide() {
       ontouchend="handleOnboardingTouchEnd(event)"
     >
       <div class="onboarding-guide__image-wrap">
-        <img src="${escapeHtml(slideImage)}" alt="" class="onboarding-guide__image" />
+        ${imageStatus === "loaded" || imageStatus === "timeout" || imageStatus === "error"
+          ? `<img src="${escapeHtml(slideImage)}" alt="" class="onboarding-guide__image" />`
+          : `<div class="onboarding-guide__image-loading" aria-hidden="true"></div>`}
       </div>
       <div class="onboarding-guide__actions ${isLastSlide ? "" : "onboarding-guide__actions--spacer"}">
         ${isLastSlide ? `
@@ -943,12 +1005,14 @@ function renderOnboardingGuide() {
   `;
 }
 
-function openOnboardingGuide() {
+async function openOnboardingGuide() {
   appMenuOpen = false;
+  renderTabs();
+  await preloadOnboardingImage(ONBOARDING_IMAGES[0]);
+  preloadOnboardingImages();
   onboardingOpen = true;
   onboardingSlideIndex = 0;
   document.body.classList.add("body--modal-open");
-  renderTabs();
   renderOnboardingGuide();
   getOnboardingElement().classList.add("onboarding-guide--open");
 }
@@ -971,15 +1035,19 @@ function skipOnboardingGuide() {
   closeOnboardingGuide({ saveCompleted: true });
 }
 
-function handleOnboardingNext() {
+async function handleOnboardingNext() {
   if (onboardingSlideIndex >= ONBOARDING_IMAGES.length - 1) return;
-  onboardingSlideIndex += 1;
+  const nextIndex = onboardingSlideIndex + 1;
+  await preloadOnboardingImage(ONBOARDING_IMAGES[nextIndex]);
+  onboardingSlideIndex = nextIndex;
   renderOnboardingGuide();
 }
 
-function handleOnboardingBack() {
+async function handleOnboardingBack() {
   if (onboardingSlideIndex <= 0) return;
-  onboardingSlideIndex -= 1;
+  const previousIndex = onboardingSlideIndex - 1;
+  await preloadOnboardingImage(ONBOARDING_IMAGES[previousIndex]);
+  onboardingSlideIndex = previousIndex;
   renderOnboardingGuide();
 }
 
@@ -1051,8 +1119,10 @@ function handleOnboardingPrimaryAction() {
   renderAll();
 }
 
-function maybeAutoShowOnboarding() {
+async function maybeAutoShowOnboarding() {
   if (!shouldAutoShowOnboarding()) return;
+  await customSplashReadyPromise;
+  await preloadOnboardingImage(ONBOARDING_IMAGES[0]);
   window.setTimeout(() => openOnboardingGuide(), 0);
 }
 
@@ -3029,9 +3099,13 @@ function setupCustomSplash() {
 
   if (localStorage.getItem(STORAGE_KEYS.customSplashSeen)) {
     splash.classList.add("is-removed");
+    customSplashReadyPromise = Promise.resolve();
     return;
   }
 
+  customSplashReadyPromise = new Promise(resolve => {
+    splash.addEventListener("custom-splash:removed", resolve, { once: true });
+  });
   splash.classList.remove("is-removed", "is-hidden");
   splash.classList.add("is-visible");
 
@@ -3051,6 +3125,7 @@ function setupCustomSplash() {
         splash.classList.remove("is-visible");
         splash.classList.add("is-removed");
         localStorage.setItem(STORAGE_KEYS.customSplashSeen, "true");
+        splash.dispatchEvent(new Event("custom-splash:removed"));
       }, CUSTOM_SPLASH_FADE_MS);
     }, delay);
   };
