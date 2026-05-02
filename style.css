@@ -39,6 +39,16 @@ body {
 
 body.body--modal-open { overflow: hidden; }
 
+body.body--first-launch-onboarding-transition::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 2300;
+  background: #ffffff;
+  color-scheme: light;
+  pointer-events: none;
+}
+
 .custom-splash {
   position: fixed;
   inset: 0;

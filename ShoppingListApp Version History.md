@@ -902,3 +902,20 @@ Date: 2026-05-02
 
 ### Notes
 - Onboarding content, slide count, CTA behavior, sample data behavior, and custom splash first-launch behavior are unchanged.
+
+## v1.4.40 Custom Splash to Onboarding Transition Draft
+Date: 2026-05-03
+
+### Completed
+- Extended the first-launch custom splash minimum display time to 3800ms.
+- Kept the custom splash fade time at 400ms.
+- Increased the custom splash fallback timeout to 5200ms.
+- Added a first-launch auto-onboarding transition guard so the normal app screen is covered by a white full-screen background until onboarding is visible.
+- Kept the guard limited to the first-launch auto-onboarding path after the custom splash.
+- Preserved onboarding image preloading and the existing wait for both splash completion and first image readiness.
+- Updated `APP_VERSION` to `1.4.40`.
+- Updated Service Worker cache version to `shopping-list-v57`.
+
+### Notes
+- Existing onboarding slide count, images, CTA behavior, sample data behavior, checklist logic, 3-column logic, tooltip logic, item sorting, sortOrder, and localStorage schema are unchanged.
+- Manual onboarding from the menu continues to use the existing onboarding overlay behavior without the first-launch splash transition guard.

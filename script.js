@@ -9,12 +9,13 @@ const STORAGE_KEYS = {
   customSplashSeen: "checkly_custom_splash_seen",
 };
 
-const APP_VERSION = "1.4.39";
+const APP_VERSION = "1.4.40";
 const BACKUP_VERSION = "1.4.0";
-const CUSTOM_SPLASH_MIN_DISPLAY_MS = 1800;
+const CUSTOM_SPLASH_MIN_DISPLAY_MS = 3800;
 const CUSTOM_SPLASH_FADE_MS = 400;
-const CUSTOM_SPLASH_FALLBACK_MS = 2800;
+const CUSTOM_SPLASH_FALLBACK_MS = 5200;
 const ONBOARDING_IMAGE_TIMEOUT_MS = 1800;
+const ONBOARDING_OPEN_TRANSITION_MS = 180;
 const SHOPPING_TOGGLE_LOCK_MS = 500;
 const MISSION_COUNTDOWN_DISPLAY_MS = 1100;
 const THREE_COLUMN_NEXT_GUIDE_DELAY_MS = 180;
@@ -94,6 +95,7 @@ let onboardingOpen = false;
 let onboardingSlideIndex = 0;
 let onboardingTouchStartX = null;
 let onboardingTouchStartY = null;
+let firstLaunchOnboardingTransitionGuardActive = false;
 
 saveData(STORAGE_KEYS.items, items);
 saveAppSettings();
@@ -887,6 +889,22 @@ function shouldAutoShowOnboarding() {
   return !hasCompletedOnboarding() && items.length === 0;
 }
 
+function shouldGuardFirstLaunchOnboardingTransition() {
+  return shouldAutoShowOnboarding() && !localStorage.getItem(STORAGE_KEYS.customSplashSeen);
+}
+
+function enableFirstLaunchOnboardingTransitionGuard() {
+  if (!shouldGuardFirstLaunchOnboardingTransition()) return;
+  firstLaunchOnboardingTransitionGuardActive = true;
+  document.body.classList.add("body--first-launch-onboarding-transition");
+}
+
+function disableFirstLaunchOnboardingTransitionGuard() {
+  if (!firstLaunchOnboardingTransitionGuardActive) return;
+  firstLaunchOnboardingTransitionGuardActive = false;
+  document.body.classList.remove("body--first-launch-onboarding-transition");
+}
+
 function preloadOnboardingImage(src, timeoutMs = ONBOARDING_IMAGE_TIMEOUT_MS) {
   const existing = onboardingImageStates.get(src);
   if (existing?.promise) return existing.promise;
@@ -1014,6 +1032,9 @@ async function openOnboardingGuide() {
   document.body.classList.add("body--modal-open");
   renderOnboardingGuide();
   getOnboardingElement().classList.add("onboarding-guide--open");
+  if (firstLaunchOnboardingTransitionGuardActive) {
+    window.setTimeout(disableFirstLaunchOnboardingTransitionGuard, ONBOARDING_OPEN_TRANSITION_MS);
+  }
 }
 
 function closeOnboardingGuide(options = {}) {
@@ -1120,6 +1141,7 @@ function handleOnboardingPrimaryAction() {
 
 async function maybeAutoShowOnboarding() {
   if (!shouldAutoShowOnboarding()) return;
+  enableFirstLaunchOnboardingTransitionGuard();
   const firstImageReadyPromise = preloadOnboardingImage(ONBOARDING_IMAGES[0]);
   await Promise.all([customSplashReadyPromise, firstImageReadyPromise]);
   window.setTimeout(() => openOnboardingGuide(), 0);
