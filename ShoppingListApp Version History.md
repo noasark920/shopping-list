@@ -852,3 +852,21 @@ PWA更新反映の安定性も強化し、実運用品質を高めた版。
 - Native OS/browser PWA splash behavior is not directly modified.
 - The custom splash appears as an in-app overlay after launch.
 - Existing app UI, data structure, localStorage, onboarding, and checklist logic are unchanged.
+
+## v1.4.37 Splash Overlay Reliability Fix
+Date: 2026-05-02
+
+### Completed
+- Made the custom splash element hidden by default in HTML with `is-removed`.
+- Updated startup logic so the splash is only revealed after the first-launch localStorage check passes.
+- Kept later launches and manual onboarding opens from revealing the splash overlay.
+- Preserved the first-launch timing values: 1800ms minimum display, 400ms fade, 2800ms fallback.
+- Hardened the splash logo rendering with explicit contain sizing.
+- Kept the custom splash background white and forced light color-scheme for the overlay.
+- Updated `APP_VERSION` to `1.4.37`.
+- Updated Service Worker cache version to `shopping-list-v54`.
+
+### Notes
+- The existing `checkly_custom_splash_seen` key is reused; no new localStorage schema is added.
+- Native PWA splash, onboarding behavior, checklist logic, 3-column logic, and tooltip logic are unchanged.
+- `img/splash-checkly-logo-v1.webp` remains in the Service Worker cache.

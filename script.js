@@ -9,7 +9,7 @@ const STORAGE_KEYS = {
   customSplashSeen: "checkly_custom_splash_seen",
 };
 
-const APP_VERSION = "1.4.36";
+const APP_VERSION = "1.4.37";
 const BACKUP_VERSION = "1.4.0";
 const CUSTOM_SPLASH_MIN_DISPLAY_MS = 1800;
 const CUSTOM_SPLASH_FADE_MS = 400;
@@ -3032,6 +3032,7 @@ function setupCustomSplash() {
     return;
   }
 
+  splash.classList.remove("is-removed", "is-hidden");
   splash.classList.add("is-visible");
 
   const startedAt = Date.now();
@@ -3047,6 +3048,7 @@ function setupCustomSplash() {
     window.setTimeout(() => {
       splash.classList.add("is-hidden");
       window.setTimeout(() => {
+        splash.classList.remove("is-visible");
         splash.classList.add("is-removed");
         localStorage.setItem(STORAGE_KEYS.customSplashSeen, "true");
       }, CUSTOM_SPLASH_FADE_MS);
@@ -3102,8 +3104,9 @@ function isStandaloneMode() {
   return iosStandalone || displayStandalone;
 }
 
+setupCustomSplash();
+
 document.addEventListener("DOMContentLoaded", () => {
-  setupCustomSplash();
   setupForms();
   setupModals();
   setupShoppingModeHelp();

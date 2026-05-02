@@ -48,6 +48,7 @@ body.body--modal-open { overflow: hidden; }
   justify-content: center;
   padding: 24px;
   background: #ffffff;
+  color-scheme: light;
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
@@ -72,9 +73,11 @@ body.body--modal-open { overflow: hidden; }
 
 .custom-splash-logo {
   width: min(72vw, 360px);
+  max-width: 360px;
   height: auto;
   max-height: 60vh;
   display: block;
+  object-fit: contain;
 }
 
 .app {
