@@ -9,7 +9,7 @@ const STORAGE_KEYS = {
   customSplashSeen: "checkly_custom_splash_seen",
 };
 
-const APP_VERSION = "1.4.40";
+const APP_VERSION = "1.4.41";
 const BACKUP_VERSION = "1.4.0";
 const CUSTOM_SPLASH_MIN_DISPLAY_MS = 3800;
 const CUSTOM_SPLASH_FADE_MS = 400;
@@ -95,6 +95,7 @@ let onboardingOpen = false;
 let onboardingSlideIndex = 0;
 let onboardingTouchStartX = null;
 let onboardingTouchStartY = null;
+let onboardingSlideTransitionInProgress = false;
 let firstLaunchOnboardingTransitionGuardActive = false;
 
 saveData(STORAGE_KEYS.items, items);
@@ -974,19 +975,28 @@ function getOnboardingElement() {
   return element;
 }
 
-function renderOnboardingGuide() {
-  if (!onboardingOpen) return;
-
-  const element = getOnboardingElement();
-  const slideImage = ONBOARDING_IMAGES[onboardingSlideIndex];
-  const imageStatus = getOnboardingImageStatus(slideImage);
-  const isLastSlide = onboardingSlideIndex === ONBOARDING_IMAGES.length - 1;
-  const indicator = ONBOARDING_IMAGES.map((_, index) => `
-    <span class="onboarding-guide__dot ${index === onboardingSlideIndex ? "onboarding-guide__dot--active" : ""}">
-      ${index === onboardingSlideIndex ? "●" : "○"}
-    </span>
-  `).join("");
+function getOnboardingActionsHtml(isLastSlide) {
   const primaryLabel = items.length === 0 ? "サンプルデータを入れる" : "閉じる";
+
+  if (isLastSlide) {
+    return `
+      <button type="button" class="btn btn--primary onboarding-guide__primary" onclick="handleOnboardingPrimaryAction()">
+        ${primaryLabel}
+      </button>
+      ${items.length === 0 ? `
+        <button type="button" class="onboarding-guide__secondary" onclick="skipOnboardingGuide()">
+          あとで自分で登録する
+        </button>
+      ` : ""}
+    `;
+  }
+
+  return `<div class="onboarding-guide__action-placeholder" aria-hidden="true"></div>`;
+}
+
+function ensureOnboardingGuideStructure() {
+  const element = getOnboardingElement();
+  if (element.querySelector(".onboarding-guide__panel")) return element;
 
   element.innerHTML = `
     <div
@@ -996,34 +1006,50 @@ function renderOnboardingGuide() {
       ontouchend="handleOnboardingTouchEnd(event)"
     >
       <div class="onboarding-guide__image-wrap">
-        ${imageStatus === "loaded" || imageStatus === "timeout" || imageStatus === "error"
-          ? `<img src="${escapeHtml(slideImage)}" alt="" class="onboarding-guide__image" />`
-          : `<div class="onboarding-guide__image-loading" aria-hidden="true"></div>`}
+        <img src="" alt="" class="onboarding-guide__image" />
       </div>
-      <div class="onboarding-guide__actions ${isLastSlide ? "" : "onboarding-guide__actions--spacer"}">
-        ${isLastSlide ? `
-          <button type="button" class="btn btn--primary onboarding-guide__primary" onclick="handleOnboardingPrimaryAction()">
-            ${primaryLabel}
-          </button>
-          ${items.length === 0 ? `
-            <button type="button" class="onboarding-guide__secondary" onclick="skipOnboardingGuide()">
-              あとで自分で登録する
-            </button>
-          ` : ""}
-        ` : `
-          <div class="onboarding-guide__action-placeholder" aria-hidden="true"></div>
-        `}
-      </div>
+      <div class="onboarding-guide__actions"></div>
       <div class="onboarding-guide__body">
-        <div class="onboarding-guide__indicator" aria-label="${onboardingSlideIndex + 1} / ${ONBOARDING_IMAGES.length}">
-          ${indicator}
-        </div>
+        <div class="onboarding-guide__indicator"></div>
       </div>
     </div>
   `;
+
+  return element;
 }
 
-async function openOnboardingGuide() {
+function renderOnboardingGuide() {
+  if (!onboardingOpen) return;
+
+  const element = ensureOnboardingGuideStructure();
+  const slideImage = ONBOARDING_IMAGES[onboardingSlideIndex];
+  const isLastSlide = onboardingSlideIndex === ONBOARDING_IMAGES.length - 1;
+  const indicator = ONBOARDING_IMAGES.map((_, index) => `
+    <span class="onboarding-guide__dot ${index === onboardingSlideIndex ? "onboarding-guide__dot--active" : ""}">
+      ${index === onboardingSlideIndex ? "●" : "○"}
+    </span>
+  `).join("");
+
+  const imageElement = element.querySelector(".onboarding-guide__image");
+  if (imageElement && imageElement.getAttribute("src") !== slideImage) {
+    imageElement.src = slideImage;
+  }
+
+  const actionsElement = element.querySelector(".onboarding-guide__actions");
+  if (actionsElement) {
+    actionsElement.classList.toggle("onboarding-guide__actions--spacer", !isLastSlide);
+    actionsElement.innerHTML = getOnboardingActionsHtml(isLastSlide);
+  }
+
+  const indicatorElement = element.querySelector(".onboarding-guide__indicator");
+  if (indicatorElement) {
+    indicatorElement.setAttribute("aria-label", `${onboardingSlideIndex + 1} / ${ONBOARDING_IMAGES.length}`);
+    indicatorElement.innerHTML = indicator;
+  }
+}
+
+async function openOnboardingGuide(options = {}) {
+  const { instant = false, keepTransitionGuard = false } = options;
   appMenuOpen = false;
   renderTabs();
   await preloadOnboardingImage(ONBOARDING_IMAGES[0]);
@@ -1031,8 +1057,10 @@ async function openOnboardingGuide() {
   onboardingSlideIndex = 0;
   document.body.classList.add("body--modal-open");
   renderOnboardingGuide();
-  getOnboardingElement().classList.add("onboarding-guide--open");
-  if (firstLaunchOnboardingTransitionGuardActive) {
+  const element = getOnboardingElement();
+  element.classList.toggle("onboarding-guide--instant", instant);
+  element.classList.add("onboarding-guide--open");
+  if (!keepTransitionGuard && firstLaunchOnboardingTransitionGuardActive) {
     window.setTimeout(disableFirstLaunchOnboardingTransitionGuard, ONBOARDING_OPEN_TRANSITION_MS);
   }
 }
@@ -1045,7 +1073,7 @@ function closeOnboardingGuide(options = {}) {
   onboardingOpen = false;
   const element = document.getElementById("onboarding-guide");
   if (element) {
-    element.classList.remove("onboarding-guide--open");
+    element.classList.remove("onboarding-guide--open", "onboarding-guide--instant");
     element.innerHTML = "";
   }
   document.body.classList.remove("body--modal-open");
@@ -1056,19 +1084,29 @@ function skipOnboardingGuide() {
 }
 
 async function handleOnboardingNext() {
-  if (onboardingSlideIndex >= ONBOARDING_IMAGES.length - 1) return;
+  if (onboardingSlideTransitionInProgress || onboardingSlideIndex >= ONBOARDING_IMAGES.length - 1) return;
   const nextIndex = onboardingSlideIndex + 1;
-  await preloadOnboardingImage(ONBOARDING_IMAGES[nextIndex]);
-  onboardingSlideIndex = nextIndex;
-  renderOnboardingGuide();
+  onboardingSlideTransitionInProgress = true;
+  try {
+    await preloadOnboardingImage(ONBOARDING_IMAGES[nextIndex]);
+    onboardingSlideIndex = nextIndex;
+    renderOnboardingGuide();
+  } finally {
+    onboardingSlideTransitionInProgress = false;
+  }
 }
 
 async function handleOnboardingBack() {
-  if (onboardingSlideIndex <= 0) return;
+  if (onboardingSlideTransitionInProgress || onboardingSlideIndex <= 0) return;
   const previousIndex = onboardingSlideIndex - 1;
-  await preloadOnboardingImage(ONBOARDING_IMAGES[previousIndex]);
-  onboardingSlideIndex = previousIndex;
-  renderOnboardingGuide();
+  onboardingSlideTransitionInProgress = true;
+  try {
+    await preloadOnboardingImage(ONBOARDING_IMAGES[previousIndex]);
+    onboardingSlideIndex = previousIndex;
+    renderOnboardingGuide();
+  } finally {
+    onboardingSlideTransitionInProgress = false;
+  }
 }
 
 function isOnboardingInteractiveTarget(target) {
@@ -1141,10 +1179,16 @@ function handleOnboardingPrimaryAction() {
 
 async function maybeAutoShowOnboarding() {
   if (!shouldAutoShowOnboarding()) return;
+  const shouldKeepTransitionGuard = shouldGuardFirstLaunchOnboardingTransition();
   enableFirstLaunchOnboardingTransitionGuard();
   const firstImageReadyPromise = preloadOnboardingImage(ONBOARDING_IMAGES[0]);
-  await Promise.all([customSplashReadyPromise, firstImageReadyPromise]);
-  window.setTimeout(() => openOnboardingGuide(), 0);
+  await firstImageReadyPromise;
+  await openOnboardingGuide({
+    instant: shouldKeepTransitionGuard,
+    keepTransitionGuard: shouldKeepTransitionGuard,
+  });
+  await customSplashReadyPromise;
+  disableFirstLaunchOnboardingTransitionGuard();
 }
 
 function getPurchasedUndoElement() {

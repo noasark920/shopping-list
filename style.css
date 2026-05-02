@@ -1476,6 +1476,10 @@ span.free-memo-row__text {
   pointer-events: auto;
 }
 
+.onboarding-guide--instant {
+  transition: none;
+}
+
 .onboarding-guide__panel {
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto auto;

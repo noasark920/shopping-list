@@ -919,3 +919,20 @@ Date: 2026-05-03
 ### Notes
 - Existing onboarding slide count, images, CTA behavior, sample data behavior, checklist logic, 3-column logic, tooltip logic, item sorting, sortOrder, and localStorage schema are unchanged.
 - Manual onboarding from the menu continues to use the existing onboarding overlay behavior without the first-launch splash transition guard.
+
+## v1.4.41 Onboarding White Flash Reduction Draft
+Date: 2026-05-03
+
+### Completed
+- Kept the current onboarding slide visible while the target slide image preload/decode promise resolves.
+- Changed onboarding slide rendering so the visible image element is not removed and recreated for every slide transition.
+- Prevented rapid duplicate slide navigation while a target slide is still preparing.
+- Rendered first-launch auto-onboarding in an instant visible state after the first image is ready, so the custom splash can fade away to an already-painted onboarding screen.
+- Kept onboarding image preloading for `onboarding1.webp` through `onboarding4.webp` in parallel during app startup.
+- Reused the existing safe preload timeout behavior.
+- Updated `APP_VERSION` to `1.4.41`.
+- Updated Service Worker cache version to `shopping-list-v58`.
+
+### Notes
+- Existing onboarding slide count, images, CTA behavior, sample data behavior, onboarding completion storage, checklist logic, 3-column logic, tooltip logic, item sorting, sortOrder, and localStorage schema are unchanged.
+- Manual onboarding continues to reuse the existing preload state and normal onboarding overlay fade.
